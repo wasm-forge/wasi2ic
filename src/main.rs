@@ -1,5 +1,5 @@
-use walrus::{ir::Instr, FunctionId};
-use std::collections::HashMap;
+use walrus::{ir::Instr, FunctionId, ImportId};
+use std::collections::{HashMap, HashSet};
 
 
 fn get_replacement_module_id(module: &walrus::Module, module_name: &str, fn_name: &str, source_id: FunctionId) -> Option<FunctionId> {
@@ -18,13 +18,13 @@ fn get_replacement_module_id(module: &walrus::Module, module_name: &str, fn_name
                 return Some(fun.id());
             }
         }
-
     }
 
     None
 }
 
 fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId> {
+
     // gather functions for replacements
     let mut fn_replacement_ids: HashMap<FunctionId, FunctionId> = HashMap::new();
 
@@ -48,39 +48,22 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
         }
     }
 
+    println!("Gathered replacement IDs {:?}", fn_replacement_ids);
+
     fn_replacement_ids
 }
 
 
-fn main() -> anyhow::Result<()> {
-    println!("Hello, walrus!");
-
-    env_logger::init();
-
-    let a = std::env::args()
-        .nth(1)
-        .ok_or_else(|| anyhow::anyhow!("provide wasm file as the first input argument"))?;
-
-    let mut m = walrus::Module::from_file(&a)?;
-
-
-    for imp in m.imports.iter() {
-        println!("{:?}", imp);
-    }
-
-    
-    let fn_replacement_ids = gather_replacement_ids(&m);
-
+fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
     // replace dependent calls
     for fun in m.funcs.iter_mut() {
-        
-        println!("\n\n======= {:?} id = {:?}", fun.name, fun.id());
-
+    
         match &mut fun.kind {
 
             walrus::FunctionKind::Import(imp_fun) => {
-                
+            
                 // println!("Imported function type: {:?}", m.types.get(imp_fun.ty));
+
             },
 
             walrus::FunctionKind::Local(local_fun) => {
@@ -88,7 +71,7 @@ fn main() -> anyhow::Result<()> {
                 // println!("Local function type: {:?}", m.types.get(local_fun.ty()));
 
                 let entry = local_fun.entry_block();
-                
+            
                 for (ins, _location) in local_fun.block_mut(entry).instrs.iter_mut() {
 
                     if let Instr::Call(call_inst) = ins {
@@ -98,7 +81,7 @@ fn main() -> anyhow::Result<()> {
                         if let Some(new_id) = new_id_opt {
 
                             call_inst.func = *new_id;
-                            
+                        
                         }
                     }
                 }
@@ -106,18 +89,64 @@ fn main() -> anyhow::Result<()> {
             walrus::FunctionKind::Uninitialized(_) => {},
         }
     }
+}
 
+
+fn remove_imports(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
 
     // remove imports
+    let mut to_remove: HashSet<ImportId> = HashSet::new();
 
+    for imp in m.imports.iter() {
 
-    // let wasm = m.emit_wasm();
+        let import_id = imp.id();
 
-    // if let Some(destination) = std::env::args().nth(2) {
-    //     std::fs::write(destination, wasm)?;
-    // }
+        match imp.kind {
+        
+            walrus::ImportKind::Function(fun_id) => {
 
-    println!("Done!");    
+                if fn_replacement_ids.get(&fun_id).is_some() {
+
+                    to_remove.insert(import_id);
+
+                }
+            },
+
+            walrus::ImportKind::Table(_) => todo!(),
+            walrus::ImportKind::Memory(_) => todo!(),
+            walrus::ImportKind::Global(_) => todo!(),
+        }
+
+    }
+
+    for import_id in to_remove {
+        println!("Removinng {:?}", import_id);
+        m.imports.delete(import_id);
+    }
+
+}
+
+fn main() -> anyhow::Result<()> {
+
+    env_logger::init();
+
+    let a = std::env::args()
+        .nth(1)
+        .ok_or_else(|| anyhow::anyhow!("provide wasm file as the first input argument"))?;
+
+    let mut m = walrus::Module::from_file(&a)?;
+    
+    let fn_replacement_ids = gather_replacement_ids(&m);
+
+    replace_calls(&mut m, &fn_replacement_ids);
+
+    remove_imports(&mut m, &fn_replacement_ids);
+
+    // store 
+    let wasm = m.emit_wasm();
+    if let Some(destination) = std::env::args().nth(2) {
+         std::fs::write(destination, wasm)?;
+    }
+
     Ok(())
-
 }
