@@ -1,10 +1,10 @@
 use walrus::{ir::Instr, FunctionId, ImportId};
-use std::collections::{HashMap, HashSet};
-
+use std::{collections::{HashMap, HashSet}, f64::consts::PI};
+use log;
 
 fn get_replacement_module_id(module: &walrus::Module, module_name: &str, fn_name: &str, source_id: FunctionId) -> Option<FunctionId> {
 
-    if module_name != "wasi_unstable" {
+    if module_name != "wasi_unstable" && module_name != "wasi_snapshot_preview1" {
         return None;
     }
 
@@ -57,6 +57,8 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
 fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
     // replace dependent calls
     for fun in m.funcs.iter_mut() {
+
+        log::debug!("Processing function `{:?}`", fun.name);
     
         match &mut fun.kind {
 
@@ -74,11 +76,28 @@ fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId
             
                 for (ins, _location) in local_fun.block_mut(entry).instrs.iter_mut() {
 
+
+
+                    if let Instr::RefFunc(ref_func_inst) = ins {
+
+                        let new_id_opt = fn_replacement_ids.get(&ref_func_inst.func);
+
+                        if let Some(new_id) = new_id_opt {
+
+                            log::debug!("Replace ref_func old ID: {:?}, new ID {:?}", ref_func_inst.func, *new_id);
+
+                            ref_func_inst.func = *new_id;
+                        
+                        }
+                    }
+
                     if let Instr::Call(call_inst) = ins {
 
                         let new_id_opt = fn_replacement_ids.get(&call_inst.func);
 
                         if let Some(new_id) = new_id_opt {
+
+                            log::debug!("Replace function call old ID: {:?}, new ID {:?}", call_inst.func, *new_id);
 
                             call_inst.func = *new_id;
                         
@@ -108,7 +127,8 @@ fn remove_imports(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionI
                 if fn_replacement_ids.get(&fun_id).is_some() {
 
                     to_remove.insert(import_id);
-
+                    
+    //                m.funcs.delete(fun_id);
                 }
             },
 
@@ -116,13 +136,18 @@ fn remove_imports(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionI
             walrus::ImportKind::Memory(_) => todo!(),
             walrus::ImportKind::Global(_) => todo!(),
         }
-
     }
 
+  /* 
     for import_id in to_remove {
-        println!("Removinng {:?}", import_id);
+        println!("Removing {:?}", import_id);
         m.imports.delete(import_id);
     }
+    */
+
+    walrus::passes::gc::run(m);
+
+    
 
 }
 
@@ -144,9 +169,12 @@ fn main() -> anyhow::Result<()> {
 
     // store 
     let wasm = m.emit_wasm();
+
     if let Some(destination) = std::env::args().nth(2) {
          std::fs::write(destination, wasm)?;
     }
+
+
 
     Ok(())
 }
