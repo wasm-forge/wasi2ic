@@ -1,5 +1,5 @@
 [package]
-name = "wasi-on-ic"
+name = "wasi2ic"
 version = "0.1.0"
 edition = "2021"
 
