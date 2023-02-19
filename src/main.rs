@@ -157,7 +157,7 @@ fn main() -> anyhow::Result<()> {
 
     let a = std::env::args()
         .nth(1)
-        .ok_or_else(|| anyhow::anyhow!("provide wasm file as the first input argument"))?;
+        .ok_or_else(|| anyhow::anyhow!("Usage: cleanwasi <input.wasm> [output.wasm]"))?;
 
     let mut m = walrus::Module::from_file(&a)?;
     
