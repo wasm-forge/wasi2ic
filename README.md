@@ -9,9 +9,9 @@
 
 To use this tool, navigate to the directory where the WASI-dependent project resides, and run the following command:
 
-`wasi2ic <path-to-wasm-file>`
+`wasi2ic <input-wasm-file> <output_wasm_file>`
 
-This will create a new file in the same directory with the suffix -ic.wasm which can be executed on the Internet Computer.
+This will read the old Wasm file and create a new Wasm file with the WASI dependencies removed.
 
 ## License
 
