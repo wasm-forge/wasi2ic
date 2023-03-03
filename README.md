@@ -4,10 +4,6 @@
 
 `wasi2ic` is a tool to convert WebAssembly System Interface (WASI) dependent projects to run on the Internet Computer (IC) computer.
 
-## Installation
-
-    Clone this repository using the command:
-
 
 ## Usage
 
