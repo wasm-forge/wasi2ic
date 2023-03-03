@@ -13,6 +13,3 @@ To use this tool, navigate to the directory where the WASI-dependent project res
 
 This will read the old Wasm file and create a new Wasm file with the WASI dependencies removed.
 
-## License
-
-This project is licensed under the MIT License.
