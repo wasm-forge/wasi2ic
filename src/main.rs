@@ -54,6 +54,9 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
 }
 
 
+
+
+
 fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
     // replace dependent calls
     for fun in m.funcs.iter_mut() {
@@ -70,44 +73,70 @@ fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId
 
             walrus::FunctionKind::Local(local_fun) => {
 
-                // println!("Local function type: {:?}", m.types.get(local_fun.ty()));
+                let block_id: walrus::ir::InstrSeqId = local_fun.entry_block();
 
-                let entry = local_fun.entry_block();
-            
-                for (ins, _location) in local_fun.block_mut(entry).instrs.iter_mut() {
+                replace_calls_in_instructions(block_id, fn_replacement_ids, local_fun);
 
-
-
-                    if let Instr::RefFunc(ref_func_inst) = ins {
-
-                        let new_id_opt = fn_replacement_ids.get(&ref_func_inst.func);
-
-                        if let Some(new_id) = new_id_opt {
-
-                            log::debug!("Replace ref_func old ID: {:?}, new ID {:?}", ref_func_inst.func, *new_id);
-
-                            ref_func_inst.func = *new_id;
-                        
-                        }
-                    }
-
-                    if let Instr::Call(call_inst) = ins {
-
-                        let new_id_opt = fn_replacement_ids.get(&call_inst.func);
-
-                        if let Some(new_id) = new_id_opt {
-
-                            log::debug!("Replace function call old ID: {:?}, new ID {:?}", call_inst.func, *new_id);
-
-                            call_inst.func = *new_id;
-                        
-                        }
-                    }
-                }
             },
             walrus::FunctionKind::Uninitialized(_) => {},
         }
     }
+}
+
+
+
+fn replace_calls_in_instructions(block_id: walrus::ir::InstrSeqId, fn_replacement_ids: &HashMap<FunctionId, FunctionId>, local_fun: &mut walrus::LocalFunction) {
+    let mut instructions = &mut local_fun.block_mut(block_id).instrs;
+    
+    let mut block_ids = vec![];
+
+    for (ins, _location) in instructions.iter_mut() {
+
+        if let Instr::RefFunc(ref_func_inst) = ins {
+
+            let new_id_opt = fn_replacement_ids.get(&ref_func_inst.func);
+
+            if let Some(new_id) = new_id_opt {
+
+                log::debug!("Replace ref_func old ID: {:?}, new ID {:?}", ref_func_inst.func, *new_id);
+
+                ref_func_inst.func = *new_id;
+        
+            }
+        }
+
+        if let Instr::Call(call_inst) = ins {
+
+            let new_id_opt = fn_replacement_ids.get(&call_inst.func);
+
+            if let Some(new_id) = new_id_opt {
+
+                log::debug!("Replace function call old ID: {:?}, new ID {:?}", call_inst.func, *new_id);
+
+                call_inst.func = *new_id;
+        
+            }
+        }
+
+        if let Instr::Block(block) = ins {
+            block_ids.push(block.seq);
+        
+        }
+
+        if let Instr::Loop(loop_ins) = ins {
+            block_ids.push(loop_ins.seq);
+        }
+
+        if let Instr::IfElse(if_else) = ins {
+            block_ids.push(if_else.consequent);
+            block_ids.push(if_else.alternative);
+        }
+    }
+
+    for block_id in block_ids {
+        replace_calls_in_instructions(block_id, fn_replacement_ids, local_fun)
+    }
+
 }
 
 
