@@ -2,7 +2,7 @@
 
 # wasi2ic
 
-`wasi2ic` is a tool to convert WebAssembly System Interface (WASI) dependent projects to run on the Internet Computer (IC) computer.
+`wasi2ic` is a tool to convert WebAssembly System Interface (WASI) dependent Wasm module to run on the Internet Computer (IC) computer.
 
 
 ## Usage
