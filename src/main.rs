@@ -1,9 +1,10 @@
-use walrus::{ir::Instr, FunctionId, ImportId};
-use std::{collections::{HashMap, HashSet}, f64::consts::PI};
+use walrus::{ir::Instr, FunctionId};
+use std::collections::HashMap;
 use log;
 
-fn get_replacement_module_id(module: &walrus::Module, module_name: &str, fn_name: &str, source_id: FunctionId) -> Option<FunctionId> {
+fn get_replacement_module_id(module: &walrus::Module, module_name: &str, fn_name: &str) -> Option<FunctionId> {
 
+    // for now we only support wasi_unstable and wasi_snapshot_preview1
     if module_name != "wasi_unstable" && module_name != "wasi_snapshot_preview1" {
         return None;
     }
@@ -33,28 +34,27 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
         match imp.kind {
         
             walrus::ImportKind::Function(fn_id) => {
-            
+                
                 let replace_id = get_replacement_module_id(
-                    m, imp.module.as_str(), imp.name.as_str(), fn_id);
-
+                    m, imp.module.as_str(), imp.name.as_str());
+                
                 if let Some(rep_id) = replace_id {
                     fn_replacement_ids.insert(fn_id, rep_id);
                 }
+
             },
 
             walrus::ImportKind::Table(_) => todo!(),
-            walrus::ImportKind::Memory(_) => todo!(),
-            walrus::ImportKind::Global(_) => todo!(),
+            
+            walrus::ImportKind::Memory(_) => {},
+            walrus::ImportKind::Global(_) => {},
         }
     }
 
-    println!("Gathered replacement IDs {:?}", fn_replacement_ids);
+    log::debug!("Gathered replacement IDs {:?}", fn_replacement_ids);
 
     fn_replacement_ids
 }
-
-
-
 
 
 fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
@@ -65,9 +65,7 @@ fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId
     
         match &mut fun.kind {
 
-            walrus::FunctionKind::Import(imp_fun) => {
-            
-                // println!("Imported function type: {:?}", m.types.get(imp_fun.ty));
+            walrus::FunctionKind::Import(_import_fun) => {
 
             },
 
@@ -78,61 +76,104 @@ fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId
                 replace_calls_in_instructions(block_id, fn_replacement_ids, local_fun);
 
             },
+
             walrus::FunctionKind::Uninitialized(_) => {},
         }
     }
 }
 
 
-
 fn replace_calls_in_instructions(block_id: walrus::ir::InstrSeqId, fn_replacement_ids: &HashMap<FunctionId, FunctionId>, local_fun: &mut walrus::LocalFunction) {
-    let mut instructions = &mut local_fun.block_mut(block_id).instrs;
+    let instructions = &mut local_fun.block_mut(block_id).instrs;
     
     let mut block_ids = vec![];
 
     for (ins, _location) in instructions.iter_mut() {
 
-        if let Instr::RefFunc(ref_func_inst) = ins {
+        match ins {
+            Instr::RefFunc(ref_func_inst) => {
+                let new_id_opt = fn_replacement_ids.get(&ref_func_inst.func);
 
-            let new_id_opt = fn_replacement_ids.get(&ref_func_inst.func);
+                if let Some(new_id) = new_id_opt {
+    
+                    log::debug!("Replace ref_func old ID: {:?}, new ID {:?}", ref_func_inst.func, *new_id);
+    
+                    ref_func_inst.func = *new_id;
+            
+                }
+            },
+            Instr::Call(call_inst) => {
+                let new_id_opt = fn_replacement_ids.get(&call_inst.func);
 
-            if let Some(new_id) = new_id_opt {
+                if let Some(new_id) = new_id_opt {
+    
+                    log::debug!("Replace function call old ID: {:?}, new ID {:?}", call_inst.func, *new_id);
+    
+                    call_inst.func = *new_id;
+            
+                }
+            },
 
-                log::debug!("Replace ref_func old ID: {:?}, new ID {:?}", ref_func_inst.func, *new_id);
+            Instr::Block(block_ins) => {
+                block_ids.push(block_ins.seq);
+            },
 
-                ref_func_inst.func = *new_id;
-        
-            }
-        }
+            Instr::Loop(loop_ins) => {
+                block_ids.push(loop_ins.seq);
+            },
 
-        if let Instr::Call(call_inst) = ins {
+            Instr::IfElse(if_else) => {
+                block_ids.push(if_else.consequent);
+                block_ids.push(if_else.alternative);
+            },
 
-            let new_id_opt = fn_replacement_ids.get(&call_inst.func);
-
-            if let Some(new_id) = new_id_opt {
-
-                log::debug!("Replace function call old ID: {:?}, new ID {:?}", call_inst.func, *new_id);
-
-                call_inst.func = *new_id;
-        
-            }
-        }
-
-        if let Instr::Block(block) = ins {
-            block_ids.push(block.seq);
-        
-        }
-
-        if let Instr::Loop(loop_ins) = ins {
-            block_ids.push(loop_ins.seq);
-        }
-
-        if let Instr::IfElse(if_else) = ins {
-            block_ids.push(if_else.consequent);
-            block_ids.push(if_else.alternative);
+            Instr::CallIndirect(_) => {},
+            Instr::LocalGet(_) => {},
+            Instr::LocalSet(_) => {},
+            Instr::LocalTee(_) => {},
+            Instr::GlobalGet(_) => {},
+            Instr::GlobalSet(_) => {},
+            Instr::Const(_) => {},
+            Instr::Binop(_) => {},
+            Instr::Unop(_) => {},
+            Instr::Select(_) => {},
+            Instr::Unreachable(_) => {},
+            Instr::Br(_) => {},
+            Instr::BrIf(_) => {},
+            Instr::BrTable(_) => {},
+            Instr::Drop(_) => {},
+            Instr::Return(_) => {},
+            Instr::MemorySize(_) => {},
+            Instr::MemoryGrow(_) => {},
+            Instr::MemoryInit(_) => {},
+            Instr::DataDrop(_) => {},
+            Instr::MemoryCopy(_) => {},
+            Instr::MemoryFill(_) => {},
+            Instr::Load(_) => {},
+            Instr::Store(_) => {},
+            Instr::AtomicRmw(_) => {},
+            Instr::Cmpxchg(_) => {},
+            Instr::AtomicNotify(_) => {},
+            Instr::AtomicWait(_) => {},
+            Instr::AtomicFence(_) => {},
+            Instr::TableGet(_) => {},
+            Instr::TableSet(_) => {},
+            Instr::TableGrow(_) => {},
+            Instr::TableSize(_) => {},
+            Instr::TableFill(_) => {},
+            Instr::RefNull(_) => {},
+            Instr::RefIsNull(_) => {},
+            Instr::V128Bitselect(_) => {},
+            Instr::I8x16Swizzle(_) => {},
+            Instr::I8x16Shuffle(_) => {},
+            Instr::LoadSimd(_) => {},
+            Instr::TableInit(_) => {},
+            Instr::ElemDrop(_) => {},
+            Instr::TableCopy(_) => {},
         }
     }
 
+    // process additional instructins inside blocks
     for block_id in block_ids {
         replace_calls_in_instructions(block_id, fn_replacement_ids, local_fun)
     }
@@ -140,69 +181,33 @@ fn replace_calls_in_instructions(block_id: walrus::ir::InstrSeqId, fn_replacemen
 }
 
 
-fn remove_imports(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
-
-    // remove imports
-    let mut to_remove: HashSet<ImportId> = HashSet::new();
-
-    for imp in m.imports.iter() {
-
-        let import_id = imp.id();
-
-        match imp.kind {
-        
-            walrus::ImportKind::Function(fun_id) => {
-
-                if fn_replacement_ids.get(&fun_id).is_some() {
-
-                    to_remove.insert(import_id);
-                    
-    //                m.funcs.delete(fun_id);
-                }
-            },
-
-            walrus::ImportKind::Table(_) => todo!(),
-            walrus::ImportKind::Memory(_) => todo!(),
-            walrus::ImportKind::Global(_) => todo!(),
-        }
-    }
-
-  /* 
-    for import_id in to_remove {
-        println!("Removing {:?}", import_id);
-        m.imports.delete(import_id);
-    }
-    */
-
-    walrus::passes::gc::run(m);
-
-    
-
-}
-
 fn main() -> anyhow::Result<()> {
 
     env_logger::init();
 
-    let a = std::env::args()
+    let input_wasm = std::env::args()
         .nth(1)
         .ok_or_else(|| anyhow::anyhow!("Usage: cleanwasi <input.wasm> [output.wasm]"))?;
 
-    let mut m = walrus::Module::from_file(&a)?;
+    // load Wasm module from file
+    let mut module = walrus::Module::from_file(&input_wasm)?;
     
-    let fn_replacement_ids = gather_replacement_ids(&m);
+    // find corresponding IDs for replacements
+    let fn_replacement_ids = gather_replacement_ids(&module);
 
-    replace_calls(&mut m, &fn_replacement_ids);
+    // do recursive call replacement
+    replace_calls(&mut module, &fn_replacement_ids);
 
-    remove_imports(&mut m, &fn_replacement_ids);
+    // clean-up unused imports
+    walrus::passes::gc::run(&mut module);
 
-    // store 
-    let wasm = m.emit_wasm();
+    // try store as binary
+    let wasm = module.emit_wasm();
 
-    if let Some(destination) = std::env::args().nth(2) {
-         std::fs::write(destination, wasm)?;
+    // store binary representation into file
+    if let Some(output_wasm) = std::env::args().nth(2) {
+         std::fs::write(output_wasm, wasm)?;
     }
-
 
 
     Ok(())
