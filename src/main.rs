@@ -183,11 +183,13 @@ fn replace_calls_in_instructions(block_id: walrus::ir::InstrSeqId, fn_replacemen
 
 fn main() -> anyhow::Result<()> {
 
+    let exe_name = std::env::current_exe().unwrap().file_name().unwrap().to_str().unwrap().to_owned();
+
     env_logger::init();
 
     let input_wasm = std::env::args()
         .nth(1)
-        .ok_or_else(|| anyhow::anyhow!("Usage: cleanwasi <input.wasm> [output.wasm]"))?;
+        .ok_or_else(|| anyhow::anyhow!("The launch parameters are incorrect, try: {} <input.wasm> [output.wasm]", {exe_name}))?;
 
     // load Wasm module from file
     let mut module = walrus::Module::from_file(&input_wasm)?;
