@@ -2,24 +2,56 @@ use walrus::{ir::Instr, FunctionId};
 use std::collections::HashMap;
 use log;
 
-fn get_replacement_module_id(module: &walrus::Module, module_name: &str, fn_name: &str) -> Option<FunctionId> {
+fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Import, fn_id: FunctionId) -> Option<FunctionId> {
+
+    let module_name = import_item.module.as_str();
+    let import_name = import_item.name.as_str();
+    
 
     // for now we only support wasi_unstable and wasi_snapshot_preview1
     if module_name != "wasi_unstable" && module_name != "wasi_snapshot_preview1" {
         return None;
     }
 
-    let searched_function_name = format!("__ic_custom_{}", fn_name);
+    let searched_function_name = format!("__ic_custom_{}", import_name);
+
 
     for fun in module.funcs.iter() {
 
         if let Some(name) = &fun.name {
 
             if name.starts_with(searched_function_name.as_str()) {
+                log::debug!("Function replacement found: {:?} -> {:?}.", 
+                    module.funcs.get(fn_id).name, 
+                    module.funcs.get(fun.id()).name);
+
                 return Some(fun.id());
             }
         }
     }
+
+    // additionally try searching exports, in case the original function was renamed
+    for export in module.exports.iter() {
+        if !export.name.starts_with(searched_function_name.as_str()) {
+            continue;
+        }
+
+        match export.item {
+            walrus::ExportItem::Function(exported_function) => {
+
+                log::debug!("Function replacement found in exports: {:?} -> {:?}.", 
+                    module.funcs.get(fn_id).name, 
+                    module.funcs.get(exported_function).name);
+
+                return Some(exported_function);
+
+            },
+            walrus::ExportItem::Table(_) | walrus::ExportItem::Memory(_) | walrus::ExportItem::Global(_) => {},
+        }
+
+    }
+
+    log::warn!("Could not find the replacement for the WASI function: {}::{}", module_name, import_name);
 
     None
 }
@@ -36,7 +68,7 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
             walrus::ImportKind::Function(fn_id) => {
                 
                 let replace_id = get_replacement_module_id(
-                    m, imp.module.as_str(), imp.name.as_str());
+                    m, imp, fn_id);
                 
                 if let Some(rep_id) = replace_id {
                     fn_replacement_ids.insert(fn_id, rep_id);
@@ -84,6 +116,8 @@ fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId
 
 
 fn replace_calls_in_instructions(block_id: walrus::ir::InstrSeqId, fn_replacement_ids: &HashMap<FunctionId, FunctionId>, local_fun: &mut walrus::LocalFunction) {
+    log::debug!("Entering block {:?}", block_id);
+
     let instructions = &mut local_fun.block_mut(block_id).instrs;
     
     let mut block_ids = vec![];
@@ -193,7 +227,7 @@ fn main() -> anyhow::Result<()> {
 
     // load Wasm module from file
     let mut module = walrus::Module::from_file(&input_wasm)?;
-    
+
     // find corresponding IDs for replacements
     let fn_replacement_ids = gather_replacement_ids(&module);
 
