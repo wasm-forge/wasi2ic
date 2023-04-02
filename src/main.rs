@@ -15,7 +15,6 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
 
     let searched_function_name = format!("__ic_custom_{}", import_name);
 
-
     for fun in module.funcs.iter() {
 
         if let Some(name) = &fun.name {
@@ -49,7 +48,7 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
             walrus::ExportItem::Table(_) | walrus::ExportItem::Memory(_) | walrus::ExportItem::Global(_) => {},
         }
 
-    }
+    }   
 
     log::warn!("Could not find the replacement for the WASI function: {}::{}", module_name, import_name);
 
@@ -214,6 +213,45 @@ fn replace_calls_in_instructions(block_id: walrus::ir::InstrSeqId, fn_replacemen
 
 }
 
+fn add_start_entry(module: &mut walrus::Module) {
+    // try to find the start function
+    let start_function = module.funcs.by_name("_start");
+
+    if let Some(start_fn) = start_function {
+        if module.start == None {
+            module.start = Some(start_fn);
+        }
+    }
+    
+}
+
+fn remove_start_export(module: &mut walrus::Module) {
+
+    let mut export_found: Option<walrus::ExportId> = None;
+
+    // try to find the start export
+    for export in module.exports.iter() {
+        if !export.name.starts_with("_start") {
+            continue;
+        }
+
+        match export.item {
+            walrus::ExportItem::Function(_) => {
+
+                export_found = Some(export.id());
+
+            },
+            walrus::ExportItem::Table(_) | walrus::ExportItem::Memory(_) | walrus::ExportItem::Global(_) => {},
+        }
+
+    }  
+
+    // remove export, if it was found
+    export_found.map(|export_id| {
+        module.exports.delete(export_id);
+    });
+
+}
 
 fn main() -> anyhow::Result<()> {
 
@@ -233,6 +271,12 @@ fn main() -> anyhow::Result<()> {
 
     // do recursive call replacement
     replace_calls(&mut module, &fn_replacement_ids);
+
+    // add start entry (this is needed to do initialization of )
+    add_start_entry(&mut module);
+
+    // remove the _start export to clean up the module exports
+    remove_start_export(&mut module);
 
     // clean-up unused imports
     walrus::passes::gc::run(&mut module);
