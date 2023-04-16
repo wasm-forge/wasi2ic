@@ -19,7 +19,7 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
 
         if let Some(name) = &fun.name {
 
-            if name.starts_with(searched_function_name.as_str()) {
+            if *name == searched_function_name {
                 log::debug!("Function replacement found: {:?} -> {:?}.", 
                     module.funcs.get(fn_id).name, 
                     module.funcs.get(fun.id()).name);
@@ -31,7 +31,7 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
 
     // additionally try searching exports, in case the original function was renamed
     for export in module.exports.iter() {
-        if !export.name.starts_with(searched_function_name.as_str()) {
+        if export.name != searched_function_name {
             continue;
         }
 
