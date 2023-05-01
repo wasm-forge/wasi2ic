@@ -23,6 +23,7 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
                 log::debug!("Function replacement found: {:?} -> {:?}.", 
                     module.funcs.get(fn_id).name, 
                     module.funcs.get(fun.id()).name);
+                assert_eq!(module.funcs.get(fn_id).ty(), module.funcs.get(fun.id()).ty());
 
                 return Some(fun.id());
             }
@@ -41,6 +42,7 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
                 log::debug!("Function replacement found in exports: {:?} -> {:?}.", 
                     module.funcs.get(fn_id).name, 
                     module.funcs.get(exported_function).name);
+                assert_eq!(module.funcs.get(fn_id).ty(), module.funcs.get(exported_function).ty());
 
                 return Some(exported_function);
 
