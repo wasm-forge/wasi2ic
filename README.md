@@ -30,3 +30,17 @@ To use this tool, navigate to the directory where the WASI-dependent project res
 
 This will read the old Wasm file and create a new Wasm file with the WASI dependencies removed.
 
+**NOTE**
+
+To use the tool, you need to add a polyfill dependency into your rust project:
+```bash
+cargo add --git https://github.com/wasm-forge/ic-wasi-polyfill
+```
+
+This will create the polyfill methods in your `.wasm` file, which are needed for `wasi2ic`.
+
+**NOTE2**
+
+The polyfill library is still in early development, and not all methods are implemented. Feel free to review its current state before use.
+
+
