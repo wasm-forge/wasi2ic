@@ -6,7 +6,6 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
 
     let module_name = import_item.module.as_str();
     let import_name = import_item.name.as_str();
-    
 
     // for now we only support wasi_unstable and wasi_snapshot_preview1
     if module_name != "wasi_unstable" && module_name != "wasi_snapshot_preview1" {
@@ -50,7 +49,7 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
             walrus::ExportItem::Table(_) | walrus::ExportItem::Memory(_) | walrus::ExportItem::Global(_) => {},
         }
 
-    }   
+    }
 
     log::warn!("Could not find the replacement for the WASI function: {}::{}", module_name, import_name);
 
@@ -286,11 +285,11 @@ fn main() -> anyhow::Result<()> {
     // try store as binary
     let wasm = module.emit_wasm();
 
-    // store binary representation into file
-    if let Some(output_wasm) = std::env::args().nth(2) {
-         std::fs::write(output_wasm, wasm)?;
-    }
+    // get outpu_wasm name or default name
+    let output_wasm: String = std::env::args().nth(2).unwrap_or(String::from("no_wasi.wasm"));
 
+    // store binary representation into file
+    std::fs::write(output_wasm, wasm)?;
 
     Ok(())
 }
