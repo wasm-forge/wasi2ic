@@ -44,3 +44,12 @@ This will create the polyfill methods in your `.wasm` file, which are needed for
 The polyfill library is still in early development, and not all methods are implemented. Feel free to review its current state before use.
 
 
+## Related repositories
+
+Please check the related repositories
+
+[Polyfill library](../ic-wasi-polyfill) | Polyfill library implementing the low-level WASI calls.
+[stable-fs](../ic-wasi-polyfill) | Simple file system implementation based on the stable structures implementing the backend of the polyfill library.
+[demo1](../demo1) | Basic demonstration of creating a "Hello World" application using Rust and running it on the Internet Computer.
+[demo2](../demo2) | Basic demonstration of creating a "Hello World" application using C++ and running it on the Internet Computer.
+[demo3](../demo3) | Example of running the Sqllite server on the Internet Computer.
