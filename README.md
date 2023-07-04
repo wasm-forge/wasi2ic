@@ -46,9 +46,10 @@ The polyfill library is still in early development, and not all methods are impl
 
 ## Related repositories
 
-Please check the related repositories
 
-------------------------------------
+
+| Repository                                      |  Description                  | 
+| --------------------------------------------- | ----------------------------- |
 | [Polyfill library](https://github.com/wasm-forge/ic-wasi-polyfill) | Polyfill library implementing the low-level WASI calls. |
 
 | [stable-fs](https://github.com/wasm-forge/stable-fs) | Simple file system implementation based on the stable structures implementing the backend of the polyfill library. |
@@ -59,4 +60,4 @@ Please check the related repositories
 
 | [demo3](https://github.com/wasm-forge/demo3) | Example of running the Sqllite server on the Internet Computer. |
 
-------------------------------------
+| --------------------------------------------- | ----------------------------- |
