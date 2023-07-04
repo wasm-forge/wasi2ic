@@ -48,8 +48,15 @@ The polyfill library is still in early development, and not all methods are impl
 
 Please check the related repositories
 
-[Polyfill library](../ic-wasi-polyfill) | Polyfill library implementing the low-level WASI calls.
-[stable-fs](../ic-wasi-polyfill) | Simple file system implementation based on the stable structures implementing the backend of the polyfill library.
-[demo1](../demo1) | Basic demonstration of creating a "Hello World" application using Rust and running it on the Internet Computer.
-[demo2](../demo2) | Basic demonstration of creating a "Hello World" application using C++ and running it on the Internet Computer.
-[demo3](../demo3) | Example of running the Sqllite server on the Internet Computer.
+------------------------------------
+| [Polyfill library](https://github.com/wasm-forge/ic-wasi-polyfill) | Polyfill library implementing the low-level WASI calls. |
+
+| [stable-fs](https://github.com/wasm-forge/stable-fs) | Simple file system implementation based on the stable structures implementing the backend of the polyfill library. |
+
+| [demo1](https://github.com/wasm-forge/demo1) | Basic demonstration of creating a "Hello World" application using Rust and running it on the Internet Computer. |
+
+| [demo2](https://github.com/wasm-forge/demo2) | Basic demonstration of creating a "Hello World" application using C++ and running it on the Internet Computer. |
+
+| [demo3](https://github.com/wasm-forge/demo3) | Example of running the Sqllite server on the Internet Computer. |
+
+------------------------------------
