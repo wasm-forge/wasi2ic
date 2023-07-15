@@ -32,7 +32,7 @@ This will read the old Wasm file and create a new Wasm file with the WASI depend
 
 **NOTE**
 
-The tool requires that you the polyfill implementation is present in your Wasm binary, to do that in your rust project, you can add the dependency:
+The tool requires that you the polyfill implementation is present in your Wasm binary, to do that in your Rust project, you can add the dependency:
 
 ```bash
 cargo add --git https://github.com/wasm-forge/ic-wasi-polyfill
