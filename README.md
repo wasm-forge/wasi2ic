@@ -32,13 +32,26 @@ This will read the old Wasm file and create a new Wasm file with the WASI depend
 
 **NOTE**
 
-The tool requires that you the polyfill implementation is present in your Wasm binary, to do that in your Rust project, you can add the dependency:
+The tool requires that the polyfill implementation is present in your Wasm binary, to include the polyfill implementation into your canister project you need to add the dependency:
 
 ```bash
 cargo add --git https://github.com/wasm-forge/ic-wasi-polyfill
 ```
 
 This will create the polyfill methods in your `.wasm` file, which are needed for `wasi2ic`.
+
+Also add the call to the init of the polyfill, example:
+
+```rust
+#[ic_cdk::init]
+fn init() {
+    unsafe {
+        ic_wasi_polyfill::init(&[0u8; 32], &[]);
+    }
+}
+```
+
+
 
 **NOTE2**
 
