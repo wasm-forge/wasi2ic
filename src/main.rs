@@ -244,7 +244,6 @@ fn remove_start_export(module: &mut walrus::Module) {
             },
             walrus::ExportItem::Table(_) | walrus::ExportItem::Memory(_) | walrus::ExportItem::Global(_) => {},
         }
-
     }  
 
     // remove export, if it was found
@@ -273,7 +272,7 @@ fn main() -> anyhow::Result<()> {
     // do recursive call replacement
     replace_calls(&mut module, &fn_replacement_ids);
 
-    // add start entry (this is needed to do initialization of )
+    // add start entry (this is needed to do initialization)
     add_start_entry(&mut module);
 
     // remove the _start export to clean up the module exports
@@ -293,3 +292,7 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+
+#[cfg(test)]
+mod tests;
