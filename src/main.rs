@@ -22,6 +22,7 @@ fn get_replacement_module_id(module: &walrus::Module, import_item: &walrus::Impo
                 log::debug!("Function replacement found: {:?} -> {:?}.", 
                     module.funcs.get(fn_id).name, 
                     module.funcs.get(fun.id()).name);
+                    
                 assert_eq!(module.funcs.get(fn_id).ty(), module.funcs.get(fun.id()).ty());
 
                 return Some(fun.id());
@@ -77,7 +78,6 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
             },
 
             walrus::ImportKind::Table(_) => todo!(),
-            
             walrus::ImportKind::Memory(_) => {},
             walrus::ImportKind::Global(_) => {},
         }
