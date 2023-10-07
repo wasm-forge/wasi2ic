@@ -253,11 +253,27 @@ fn remove_start_export(module: &mut walrus::Module) {
 
 }
 
+fn do_module_replacements(module: &mut walrus::Module) {
+    // find corresponding IDs for replacements
+    let fn_replacement_ids = gather_replacement_ids(&module);
+
+    // do recursive call replacement
+    replace_calls(module, &fn_replacement_ids);
+
+    // add start entry (this is needed to do initialization)
+    add_start_entry(module);
+
+    // remove the _start export to clean up the module exports
+    remove_start_export(module);
+
+    // clean-up unused imports
+    walrus::passes::gc::run(module);
+}
+
 fn main() -> anyhow::Result<()> {
+    env_logger::init();
 
     let exe_name = std::env::current_exe().unwrap().file_name().unwrap().to_str().unwrap().to_owned();
-
-    env_logger::init();
 
     let input_wasm = std::env::args()
         .nth(1)
@@ -266,20 +282,8 @@ fn main() -> anyhow::Result<()> {
     // load Wasm module from file
     let mut module = walrus::Module::from_file(&input_wasm)?;
 
-    // find corresponding IDs for replacements
-    let fn_replacement_ids = gather_replacement_ids(&module);
-
-    // do recursive call replacement
-    replace_calls(&mut module, &fn_replacement_ids);
-
-    // add start entry (this is needed to do initialization)
-    add_start_entry(&mut module);
-
-    // remove the _start export to clean up the module exports
-    remove_start_export(&mut module);
-
-    // clean-up unused imports
-    walrus::passes::gc::run(&mut module);
+    // do the substitution workflow
+    do_module_replacements(&mut module);
 
     // try store as binary
     let wasm = module.emit_wasm();
