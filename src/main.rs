@@ -1,6 +1,14 @@
 use walrus::{ir::Instr, FunctionId};
-use std::collections::HashMap;
+use std::{collections::HashMap, path::{Path, PathBuf}, ffi::OsStr};
 use log;
+
+#[allow(dead_code)]
+fn print_wasm(module: &mut walrus::Module) {
+    let wasm = module.emit_wasm();
+    let text = wasmprinter::print_bytes(wasm).unwrap();
+
+    println!("{}", text);
+}
 
 fn get_replacement_module_id(module: &walrus::Module, module_name: &str, import_name: &str, fn_id: FunctionId) -> Option<FunctionId> {
 
@@ -70,7 +78,7 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
 
             },
 
-            walrus::ImportKind::Table(_) => todo!(),
+            walrus::ImportKind::Table(_) => {},
             walrus::ImportKind::Memory(_) => {},
             walrus::ImportKind::Global(_) => {},
         }
@@ -84,6 +92,24 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
 
 fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
     
+    for elem in m.elements.iter_mut() {
+
+        for member in elem.members.iter_mut() {
+            if let Some(func_id) = member {
+
+                let new_id_opt = fn_replacement_ids.get(func_id);
+
+                if let Some(new_id) = new_id_opt {
+    
+                    log::debug!("Replace func id old ID: {:?}, new ID {:?}", func_id, *new_id);
+    
+                    *member = Some(*new_id);
+            
+                }
+            }
+        }
+    }
+
     // replace dependent calls
     for fun in m.funcs.iter_mut() {
 
@@ -153,6 +179,7 @@ fn replace_calls_in_instructions(block_id: walrus::ir::InstrSeqId, fn_replacemen
             },
 
             Instr::CallIndirect(_) => {},
+            
             Instr::LocalGet(_) => {},
             Instr::LocalSet(_) => {},
             Instr::LocalTee(_) => {},
@@ -261,29 +288,41 @@ fn do_module_replacements(module: &mut walrus::Module) {
     walrus::passes::gc::run(module);
 }
 
+fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), anyhow::Error> {
+
+    let mut module = if let Some(ext) = input_wasm.extension() {
+        if ext == "wat" {
+            let input_bin = wat::parse_file(input_wasm)?;
+            walrus::Module::from_buffer(&input_bin)?
+        } else {
+            walrus::Module::from_file(&input_wasm)?
+        }
+    } else {
+        walrus::Module::from_file(&input_wasm)?
+    };
+
+    do_module_replacements(&mut module);
+    
+    print_wasm(&mut module);
+
+    let wasm = module.emit_wasm();
+
+    std::fs::write(output_wasm, &wasm)?;
+
+    Ok(())
+}
+
+
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let exe_name = std::env::current_exe().unwrap().file_name().unwrap().to_str().unwrap().to_owned();
+    let input_wasm = std::env::args().nth(1).ok_or_else(|| anyhow::anyhow!("The launch parameters are incorrect, try: {} <input.wasm> [output.wasm]", {exe_name}))?;
 
-    let input_wasm = std::env::args()
-        .nth(1)
-        .ok_or_else(|| anyhow::anyhow!("The launch parameters are incorrect, try: {} <input.wasm> [output.wasm]", {exe_name}))?;
-
-    // load Wasm module from file
-    let mut module = walrus::Module::from_file(&input_wasm)?;
-
-    // do the substitution workflow
-    do_module_replacements(&mut module);
-
-    // try store as binary
-    let wasm = module.emit_wasm();
-
-    // get outpu_wasm name or default name
+    // get output wasm name or use default name
     let output_wasm: String = std::env::args().nth(2).unwrap_or(String::from("no_wasi.wasm"));
 
-    // store binary representation into file
-    std::fs::write(output_wasm, wasm)?;
+    do_wasm_file_processing(Path::new(&input_wasm), Path::new(&output_wasm))?;
 
     Ok(())
 }

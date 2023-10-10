@@ -1,13 +1,8 @@
 
+
 use crate::*;
 
-#[allow(dead_code)]
-fn print_wasm(module: &mut walrus::Module) {
-    let wasm = module.emit_wasm();
-    let text = wasmprinter::print_bytes(wasm).unwrap();
 
-    println!("{}", text);
-}
 
 #[test]
 fn test_add_start_entry() {
@@ -30,7 +25,6 @@ fn test_add_start_entry() {
             drop
             drop
             )
-        
         )
     "#;
 
@@ -117,7 +111,7 @@ fn test_remove_start_export() {
 fn test_gather_replacement_ids() {
 
     let wat = r#"
-      (module
+    (module
         (type (;0;) (func))
         (type (;1;) (func (param i32)))
         (type (;2;) (func (param i32 i32)))
@@ -133,37 +127,38 @@ fn test_gather_replacement_ids() {
         (import "wasi_unstable" "proc_exit" (func $__imported_wasi_unstable_proc_exit (;5;) (type 1)))
 
         (func $_start (;6;) (type 0)
-          i32.const 1
-          i32.const 2
-          call $__ic_custom_random_get
-          i32.const 1
-          i32.const 2
-          call $_wasi_unstable_random_get
-          i32.const 4
-          i32.const 5
-          call $_wasi_unstable_fd_write
-          drop
+            i32.const 1
+            i32.const 2
+            call $__ic_custom_random_get
+            i32.const 1
+            i32.const 2
+            call $_wasi_unstable_random_get
+            i32.const 4
+            i32.const 5
+            call $_wasi_unstable_fd_write
+            drop
         )
 
         (func $__ic_custom_random_get (;8;) (type 3) (param i32 i32) (result i32)
-          call $_msg_reply
-          i32.const 421
+            call $_msg_reply
+
+            i32.const 421
         )
 
         (func $ic_dummy_fd_write (;7;) (type 5) (param i32 i32 i32 i32) (result i32)
-          i32.const 0
-          i32.const 0
-          call $_dprint
-          i32.const 42
+            i32.const 0
+            i32.const 0
+            call $_dprint
+            i32.const 42
         )
 
         (export "__ic_custom_fd_write" (func $ic_dummy_fd_write))
         (export "_start" (func $_start))
-      )
+    )
     "#;
 
     let binary = wat::parse_str(wat).unwrap();
-    let mut module = walrus::Module::from_buffer(&binary).unwrap();
+    let module = walrus::Module::from_buffer(&binary).unwrap();
 
     let id_reps: HashMap<usize, usize> = gather_replacement_ids(&module).iter().map(|(x, y)| (x.index(), y.index())).collect();
 
@@ -171,6 +166,7 @@ fn test_gather_replacement_ids() {
     assert!(id_reps[&3] == 7);
 
 }
+
 
 #[test]
 fn test_do_module_replacements() {
@@ -189,13 +185,16 @@ fn test_do_module_replacements() {
         (import "wasi_snapshot_preview1" "random_get" (func $_wasi_snapshot_preview_random_get (;3;) (type 3)))
         (import "wasi_snapshot_preview1" "environ_get" (func $__imported_wasi_snapshot_preview1_environ_get (;4;) (type 3)))
         (import "wasi_snapshot_preview1" "proc_exit" (func $__imported_wasi_snapshot_preview1_proc_exit (;5;) (type 1)))
+        
+        (table (;0;) 5 5 funcref)
+        (elem (;0;) (i32.const 1) func $_wasi_snapshot_preview_fd_write $_wasi_snapshot_preview_random_get )
 
         (func $_start (;6;) (type 0)
             i32.const 1
             i32.const 2
             call $_wasi_snapshot_preview_random_get
 
-            (block $test_block
+            (block $test_block 
                 i32.const 0
                 (if 
                     (then
@@ -209,14 +208,19 @@ fn test_do_module_replacements() {
                         )
                     )
                     (else 
-                        (loop $test_loop
+                        (loop $test_loop (result i32)
                             i32.const 1
                             i32.const 2
                 
                             call $_wasi_snapshot_preview_random_get
     
-                            br_if $test_loop
+                            br_if $test_loop 
+
+                            i32.const 2
                         )
+
+                        drop
+
                     )
                 )
             )
@@ -230,8 +234,14 @@ fn test_do_module_replacements() {
         )
 
         (func $__ic_custom_random_get (;7;) (type 3) (param i32 i32) (result i32)
+            i32.const 0
+            ref.func $_wasi_snapshot_preview_random_get
+            table.set 0
+
             call $_msg_reply
             i32.const 421
+
+
         )
 
         (func $__ic_custom_fd_write (;8;) (type 5) (param i32 i32 i32 i32) (result i32)
@@ -266,4 +276,43 @@ fn test_do_module_replacements() {
     let result = imports.find("wasi_snapshot_preview1", "environ_get");
     assert!(None == result);
 
+}
+
+
+
+#[test]
+fn test_file_processing() {
+    
+    std::fs::create_dir_all("target/test").unwrap();
+
+    let input_file = Path::new("test/assets/main_test.wat");
+    assert!(input_file.exists());
+
+    let output_wasm = Path::new("target/test/nowasi.wasm");
+
+    let _ = std::fs::remove_file(output_wasm);
+
+    assert!(!output_wasm.exists());
+
+    do_wasm_file_processing(input_file, output_wasm).unwrap();
+
+    assert!(output_wasm.exists());
+
+    let mut module = walrus::Module::from_file(output_wasm).unwrap();
+
+    // we expect random_get and fd_write to be replaced, environ_get to be removed and the calls to the proc_exit to remain
+    let imports = module.imports;
+
+    let result = imports.find("ic0", "debug_print");
+    assert!(result.is_some());
+    let result = imports.find("ic0", "msg_reply");
+    assert!(result.is_some());
+    let result = imports.find("wasi_snapshot_preview1", "proc_exit");
+    assert!(result.is_some());
+    let result = imports.find("wasi_snapshot_preview1", "fd_write");
+    assert!(None == result);
+    let result = imports.find("wasi_snapshot_preview1", "random_get");
+    assert!(None == result);
+    let result = imports.find("wasi_snapshot_preview1", "environ_get");
+    assert!(None == result);
 }

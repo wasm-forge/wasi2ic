@@ -9,7 +9,5 @@ walrus = "0.19.0"
 anyhow = { version = "1.0", default-features = false }
 env_logger = "0.10.0"
 log = "0.4.17"
-
-[dev-dependencies]
-wat = "1.0.75"
 wasmprinter = "0.2.68"
+wat = "1.0.75"
