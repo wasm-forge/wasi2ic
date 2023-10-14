@@ -1,12 +1,7 @@
-
-
 use crate::*;
-
-
 
 #[test]
 fn test_add_start_entry() {
-
     let wat = r#"
         (module
             (func $add (param i32 i32) (result i32)
@@ -40,7 +35,6 @@ fn test_add_start_entry() {
 
 #[test]
 fn test_remove_start_export() {
-
     let wat = r#"
         (module
             (func $add (param i32 i32) (result i32)
@@ -78,10 +72,10 @@ fn test_remove_start_export() {
         match export.item {
             walrus::ExportItem::Function(_) => {
                 export_found = Some(export.id());
-            },
-            _ => {},
+            }
+            _ => {}
         }
-    }  
+    }
 
     assert!(export_found.is_some());
 
@@ -97,19 +91,16 @@ fn test_remove_start_export() {
         match export.item {
             walrus::ExportItem::Function(_) => {
                 export_found = Some(export.id());
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
     assert!(None == export_found);
-
 }
-
 
 #[test]
 fn test_gather_replacement_ids() {
-
     let wat = r#"
     (module
         (type (;0;) (func))
@@ -160,17 +151,17 @@ fn test_gather_replacement_ids() {
     let binary = wat::parse_str(wat).unwrap();
     let module = walrus::Module::from_buffer(&binary).unwrap();
 
-    let id_reps: HashMap<usize, usize> = gather_replacement_ids(&module).iter().map(|(x, y)| (x.index(), y.index())).collect();
+    let id_reps: HashMap<usize, usize> = gather_replacement_ids(&module)
+        .iter()
+        .map(|(x, y)| (x.index(), y.index()))
+        .collect();
 
     assert!(id_reps[&2] == 8);
     assert!(id_reps[&3] == 7);
-
 }
-
 
 #[test]
 fn test_do_module_replacements() {
-
     let wat = r#"
     (module
         (type (;0;) (func))
@@ -275,14 +266,10 @@ fn test_do_module_replacements() {
     assert!(None == result);
     let result = imports.find("wasi_snapshot_preview1", "environ_get");
     assert!(None == result);
-
 }
-
-
 
 #[test]
 fn test_file_processing() {
-    
     std::fs::create_dir_all("target/test").unwrap();
 
     let input_file = Path::new("test/assets/main_test.wat");
@@ -298,7 +285,7 @@ fn test_file_processing() {
 
     assert!(output_wasm.exists());
 
-    let mut module = walrus::Module::from_file(output_wasm).unwrap();
+    let module = walrus::Module::from_file(output_wasm).unwrap();
 
     // we expect random_get and fd_write to be replaced, environ_get to be removed and the calls to the proc_exit to remain
     let imports = module.imports;
