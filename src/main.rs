@@ -276,14 +276,15 @@ fn remove_start_export(module: &mut walrus::Module) {
     }
 
     // remove export, if it was found
-    export_found.map(|export_id| {
-        module.exports.delete(export_id);
-    });
+    if let Some(export_id) = export_found { 
+        module.exports.delete(export_id); 
+    }
+
 }
 
 fn do_module_replacements(module: &mut walrus::Module) {
     // find corresponding IDs for replacements
-    let fn_replacement_ids = gather_replacement_ids(&module);
+    let fn_replacement_ids = gather_replacement_ids(module);
 
     // do recursive call replacement
     replace_calls(module, &fn_replacement_ids);
@@ -304,17 +305,17 @@ fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), 
             let input_bin = wat::parse_file(input_wasm)?;
             walrus::Module::from_buffer(&input_bin)?
         } else {
-            walrus::Module::from_file(&input_wasm)?
+            walrus::Module::from_file(input_wasm)?
         }
     } else {
-        walrus::Module::from_file(&input_wasm)?
+        walrus::Module::from_file(input_wasm)?
     };
 
     do_module_replacements(&mut module);
 
     let wasm = module.emit_wasm();
 
-    std::fs::write(output_wasm, &wasm)?;
+    std::fs::write(output_wasm, wasm)?;
 
     Ok(())
 }
