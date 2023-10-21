@@ -75,6 +75,9 @@
         i32.const 42
     )
 
+
+
+
     (export "_start" (func $_start))
 
 )

@@ -192,50 +192,49 @@ fn replace_calls_in_instructions(
                 block_ids.push(if_else.alternative);
             }
 
-            Instr::CallIndirect(_) => {}
-
-            Instr::LocalGet(_) => {}
-            Instr::LocalSet(_) => {}
-            Instr::LocalTee(_) => {}
-            Instr::GlobalGet(_) => {}
-            Instr::GlobalSet(_) => {}
-            Instr::Const(_) => {}
-            Instr::Binop(_) => {}
-            Instr::Unop(_) => {}
-            Instr::Select(_) => {}
-            Instr::Unreachable(_) => {}
-            Instr::Br(_) => {}
-            Instr::BrIf(_) => {}
-            Instr::BrTable(_) => {}
-            Instr::Drop(_) => {}
-            Instr::Return(_) => {}
-            Instr::MemorySize(_) => {}
-            Instr::MemoryGrow(_) => {}
-            Instr::MemoryInit(_) => {}
-            Instr::DataDrop(_) => {}
-            Instr::MemoryCopy(_) => {}
-            Instr::MemoryFill(_) => {}
-            Instr::Load(_) => {}
-            Instr::Store(_) => {}
-            Instr::AtomicRmw(_) => {}
-            Instr::Cmpxchg(_) => {}
-            Instr::AtomicNotify(_) => {}
-            Instr::AtomicWait(_) => {}
-            Instr::AtomicFence(_) => {}
-            Instr::TableGet(_) => {}
-            Instr::TableSet(_) => {}
-            Instr::TableGrow(_) => {}
-            Instr::TableSize(_) => {}
-            Instr::TableFill(_) => {}
-            Instr::RefNull(_) => {}
-            Instr::RefIsNull(_) => {}
-            Instr::V128Bitselect(_) => {}
-            Instr::I8x16Swizzle(_) => {}
-            Instr::I8x16Shuffle(_) => {}
-            Instr::LoadSimd(_) => {}
-            Instr::TableInit(_) => {}
-            Instr::ElemDrop(_) => {}
-            Instr::TableCopy(_) => {}
+            Instr::CallIndirect(_)
+            | Instr::LocalGet(_)
+            | Instr::LocalSet(_)
+            | Instr::LocalTee(_)
+            | Instr::GlobalGet(_)
+            | Instr::GlobalSet(_)
+            | Instr::Const(_)
+            | Instr::Binop(_)
+            | Instr::Unop(_)
+            | Instr::Select(_)
+            | Instr::Unreachable(_)
+            | Instr::Br(_)
+            | Instr::BrIf(_)
+            | Instr::BrTable(_)
+            | Instr::Drop(_)
+            | Instr::Return(_)
+            | Instr::MemorySize(_)
+            | Instr::MemoryGrow(_)
+            | Instr::MemoryInit(_)
+            | Instr::DataDrop(_)
+            | Instr::MemoryCopy(_)
+            | Instr::MemoryFill(_)
+            | Instr::Load(_)
+            | Instr::Store(_)
+            | Instr::AtomicRmw(_)
+            | Instr::Cmpxchg(_)
+            | Instr::AtomicNotify(_)
+            | Instr::AtomicWait(_)
+            | Instr::AtomicFence(_)
+            | Instr::TableGet(_)
+            | Instr::TableSet(_)
+            | Instr::TableGrow(_)
+            | Instr::TableSize(_)
+            | Instr::TableFill(_)
+            | Instr::RefNull(_)
+            | Instr::RefIsNull(_)
+            | Instr::V128Bitselect(_)
+            | Instr::I8x16Swizzle(_)
+            | Instr::I8x16Shuffle(_)
+            | Instr::LoadSimd(_)
+            | Instr::TableInit(_)
+            | Instr::ElemDrop(_)
+            | Instr::TableCopy(_) => {}
         }
     }
 
@@ -276,10 +275,9 @@ fn remove_start_export(module: &mut walrus::Module) {
     }
 
     // remove export, if it was found
-    if let Some(export_id) = export_found { 
-        module.exports.delete(export_id); 
+    if let Some(export_id) = export_found {
+        module.exports.delete(export_id);
     }
-
 }
 
 fn do_module_replacements(module: &mut walrus::Module) {
