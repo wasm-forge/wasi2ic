@@ -1,6 +1,6 @@
 [package]
 name = "wasi2ic"
-version = "0.2.0"
+version = "0.2.10"
 edition = "2021"
 
 

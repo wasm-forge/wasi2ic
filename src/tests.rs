@@ -303,3 +303,26 @@ fn test_file_processing() {
     let result = imports.find("wasi_snapshot_preview1", "environ_get");
     assert!(None == result);
 }
+
+#[test]
+fn test_argument_parsing_two_inputs() {
+
+    let args = vec![String::from("app_name"), String::from("input.wasm"), String::from("output.wasm")];
+
+    let (input_wasm, output_wasm) = parse_arguments(&args).unwrap();
+
+    assert_eq!("input.wasm", input_wasm);
+    assert_eq!("output.wasm", output_wasm);
+}
+
+
+#[test]
+fn test_argument_parsing_one_input_with_default_output() {
+
+    let args = vec![String::from("app_name"), String::from("input.wasm")];
+
+    let (input_wasm, output_wasm) = parse_arguments(&args).unwrap();
+
+    assert_eq!("input.wasm", input_wasm);
+    assert_eq!("no_wasi.wasm", output_wasm);
+}

@@ -318,8 +318,8 @@ fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), 
     Ok(())
 }
 
-fn main() -> anyhow::Result<()> {
-    env_logger::init();
+fn parse_arguments(args: &Vec<String>) -> Result<(String, String), anyhow::Error> {
+
 
     let exe_name = std::env::current_exe()
         .unwrap()
@@ -328,17 +328,31 @@ fn main() -> anyhow::Result<()> {
         .to_str()
         .unwrap()
         .to_owned();
-    let input_wasm = std::env::args().nth(1).ok_or_else(|| {
+
+    let exe_version = env!("CARGO_PKG_VERSION");
+
+    println!("Wasi dependency removal {exe_name} v{exe_version}");
+
+    let input_wasm = args.get(1).ok_or_else(|| {
         anyhow::anyhow!(
-            "The launch parameters are incorrect, try: {} <input.wasm> [output.wasm]",
-            { exe_name }
+            "The launch parameters are incorrect, try: {exe_name} <input.wasm> [output.wasm]"
         )
     })?;
 
     // get output wasm name or use default name
-    let output_wasm: String = std::env::args()
-        .nth(2)
-        .unwrap_or(String::from("no_wasi.wasm"));
+    let default_output_name = String::from("no_wasi.wasm");
+    let output_wasm = args.get(2).unwrap_or(&default_output_name);
+
+    Ok((input_wasm.clone(), output_wasm.clone()))
+
+}
+
+fn main() -> anyhow::Result<()> {
+    env_logger::init();
+
+    let args: Vec<String> = std::env::args().collect();
+
+    let (input_wasm, output_wasm) = parse_arguments(&args)?;
 
     do_wasm_file_processing(Path::new(&input_wasm), Path::new(&output_wasm))?;
 
