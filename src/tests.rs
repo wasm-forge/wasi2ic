@@ -5,20 +5,20 @@ fn test_add_start_entry() {
     let wat = r#"
         (module
             (func $add (param i32 i32) (result i32)
-            local.get 0
-            local.get 1
-            i32.add
+                local.get 0
+                local.get 1
+                i32.add
             )
 
             (func $_start
-            i32.const 2
-            i32.const 3
-            call $add
-            i32.const 5
-            i32.const 7
-            call $add
-            drop
-            drop
+                i32.const 2
+                i32.const 3
+                call $add
+                i32.const 5
+                i32.const 7
+                call $add
+                drop
+                drop
             )
         )
     "#;
@@ -38,20 +38,20 @@ fn test_remove_start_export() {
     let wat = r#"
         (module
             (func $add (param i32 i32) (result i32)
-            local.get 0
-            local.get 1
-            i32.add
+                local.get 0
+                local.get 1
+                i32.add
             )
 
             (func $_start
-            i32.const 2
-            i32.const 3
-            call $add
-            i32.const 5
-            i32.const 7
-            call $add
-            drop
-            drop
+                i32.const 2
+                i32.const 3
+                call $add
+                i32.const 5
+                i32.const 7
+                call $add
+                drop
+                drop
             )
 
             (export "_start" (func $_start))
@@ -306,8 +306,11 @@ fn test_file_processing() {
 
 #[test]
 fn test_argument_parsing_two_inputs() {
-
-    let args = vec![String::from("app_name"), String::from("input.wasm"), String::from("output.wasm")];
+    let args = vec![
+        String::from("app_name"),
+        String::from("input.wasm"),
+        String::from("output.wasm"),
+    ];
 
     let (input_wasm, output_wasm) = parse_arguments(&args).unwrap();
 
@@ -315,10 +318,8 @@ fn test_argument_parsing_two_inputs() {
     assert_eq!("output.wasm", output_wasm);
 }
 
-
 #[test]
 fn test_argument_parsing_one_input_with_default_output() {
-
     let args = vec![String::from("app_name"), String::from("input.wasm")];
 
     let (input_wasm, output_wasm) = parse_arguments(&args).unwrap();

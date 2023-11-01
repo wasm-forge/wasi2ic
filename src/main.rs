@@ -1,14 +1,6 @@
 use std::{collections::HashMap, path::Path};
 use walrus::{ir::Instr, FunctionId};
 
-#[allow(dead_code)]
-fn print_wasm(module: &mut walrus::Module) {
-    let wasm = module.emit_wasm();
-    let text = wasmprinter::print_bytes(wasm).unwrap();
-
-    println!("{}", text);
-}
-
 fn get_replacement_module_id(
     module: &walrus::Module,
     module_name: &str,
@@ -92,9 +84,9 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
                 }
             }
 
-            walrus::ImportKind::Table(_) => {}
-            walrus::ImportKind::Memory(_) => {}
-            walrus::ImportKind::Global(_) => {}
+            walrus::ImportKind::Table(_)
+            | walrus::ImportKind::Memory(_)
+            | walrus::ImportKind::Global(_) => {}
         }
     }
 
@@ -319,8 +311,6 @@ fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), 
 }
 
 fn parse_arguments(args: &Vec<String>) -> Result<(String, String), anyhow::Error> {
-
-
     let exe_name = std::env::current_exe()
         .unwrap()
         .file_name()
@@ -344,7 +334,6 @@ fn parse_arguments(args: &Vec<String>) -> Result<(String, String), anyhow::Error
     let output_wasm = args.get(2).unwrap_or(&default_output_name);
 
     Ok((input_wasm.clone(), output_wasm.clone()))
-
 }
 
 fn main() -> anyhow::Result<()> {
@@ -353,6 +342,12 @@ fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
     let (input_wasm, output_wasm) = parse_arguments(&args)?;
+
+    log::info!(
+        "Processing input file: '{}', writing output into '{}'",
+        input_wasm,
+        output_wasm
+    );
 
     do_wasm_file_processing(Path::new(&input_wasm), Path::new(&output_wasm))?;
 
