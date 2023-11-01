@@ -333,6 +333,12 @@ fn parse_arguments(args: &Vec<String>) -> Result<(String, String), anyhow::Error
     let default_output_name = String::from("no_wasi.wasm");
     let output_wasm = args.get(2).unwrap_or(&default_output_name);
 
+    log::info!(
+        "Processing input file: '{}', writing output into '{}'",
+        input_wasm,
+        output_wasm
+    );
+
     Ok((input_wasm.clone(), output_wasm.clone()))
 }
 
@@ -342,12 +348,6 @@ fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
     let (input_wasm, output_wasm) = parse_arguments(&args)?;
-
-    log::info!(
-        "Processing input file: '{}', writing output into '{}'",
-        input_wasm,
-        output_wasm
-    );
 
     do_wasm_file_processing(Path::new(&input_wasm), Path::new(&output_wasm))?;
 

@@ -179,6 +179,12 @@ fn test_do_module_replacements() {
         
         (table (;0;) 5 5 funcref)
         (elem (;0;) (i32.const 1) func $_wasi_snapshot_preview_fd_write $_wasi_snapshot_preview_random_get )
+        
+        (memory (export "memory") 1 100)
+
+        (data (i32.const 0x0000)
+            "\65\66\67\68"
+        )
 
         (func $_start (;6;) (type 0)
             i32.const 1
@@ -326,4 +332,13 @@ fn test_argument_parsing_one_input_with_default_output() {
 
     assert_eq!("input.wasm", input_wasm);
     assert_eq!("no_wasi.wasm", output_wasm);
+}
+
+#[test]
+fn test_empty_input_arguments() {
+    let args = vec![];
+
+    let result = parse_arguments(&args);
+
+    assert!(result.is_err());
 }
