@@ -69,3 +69,5 @@ The polyfill library is still in early development, and not all methods are impl
 | [demo1](https://github.com/wasm-forge/demo1) | Basic demonstration of creating a "Hello World" application using Rust and running it on the Internet Computer. |
 | [demo2](https://github.com/wasm-forge/demo2) | Basic demonstration of creating a "Hello World" application using C++ and running it on the Internet Computer. |
 | [demo3](https://github.com/wasm-forge/demo3) | Example of running the Sqllite server on the Internet Computer. |
+| [demo4](https://github.com/wasm-forge/demo4) | Example of running the Boa JavaScript interpretter on the Internet Computer. |
+
