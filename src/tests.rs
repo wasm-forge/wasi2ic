@@ -278,16 +278,20 @@ fn test_do_module_replacements() {
 fn test_file_processing() {
     std::fs::create_dir_all("target/test").unwrap();
 
-    let input_file = Path::new("test/assets/main_test.wat");
+    let args: arguments::Wasm2icArgs = arguments::Wasm2icArgs {
+        quiet: false,
+        input_file: "test/assets/main_test.wat".to_string(),
+        output_file: "target/test/nowasi.wasm".to_string(),
+    };
+
+    let input_file = Path::new(&args.input_file);
     assert!(input_file.exists());
 
-    let output_wasm = Path::new("target/test/nowasi.wasm");
-
-    let _ = std::fs::remove_file(output_wasm);
-
+    let output_wasm = Path::new(&args.output_file);
+    let _ = std::fs::remove_file(&output_wasm);
     assert!(!output_wasm.exists());
 
-    do_wasm_file_processing(input_file, output_wasm).unwrap();
+    do_wasm_file_processing(&args).unwrap();
 
     assert!(output_wasm.exists());
 
@@ -308,37 +312,4 @@ fn test_file_processing() {
     assert!(None == result);
     let result = imports.find("wasi_snapshot_preview1", "environ_get");
     assert!(None == result);
-}
-
-#[test]
-fn test_argument_parsing_two_inputs() {
-    let args = vec![
-        String::from("app_name"),
-        String::from("input.wasm"),
-        String::from("output.wasm"),
-    ];
-
-    let (input_wasm, output_wasm) = parse_arguments(&args).unwrap();
-
-    assert_eq!("input.wasm", input_wasm);
-    assert_eq!("output.wasm", output_wasm);
-}
-
-#[test]
-fn test_argument_parsing_one_input_with_default_output() {
-    let args = vec![String::from("app_name"), String::from("input.wasm")];
-
-    let (input_wasm, output_wasm) = parse_arguments(&args).unwrap();
-
-    assert_eq!("input.wasm", input_wasm);
-    assert_eq!("no_wasi.wasm", output_wasm);
-}
-
-#[test]
-fn test_empty_input_arguments() {
-    let args = vec![];
-
-    let result = parse_arguments(&args);
-
-    assert!(result.is_err());
 }
