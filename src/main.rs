@@ -295,12 +295,14 @@ fn do_module_replacements(module: &mut walrus::Module) {
 
 //fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), anyhow::Error> {
 fn do_wasm_file_processing(args: &arguments::Wasm2icArgs) -> Result<(), anyhow::Error> {
+    log::info!(
+        "Processing input file: '{}', writing output into '{}'",
+        args.input_file,
+        args.output_file
+    );
+
     if !args.quiet {
-        log::info!(
-            "Processing input file: '{}', writing output into '{}'",
-            args.input_file,
-            args.output_file
-        );
+        println!("wasi2ic: processing input file: '{}', writing output into '{}'", args.input_file, args.output_file);
     }
 
     let input_wasm = Path::new(&args.input_file);
