@@ -1,3 +1,6 @@
+mod arguments;
+
+use clap::Parser;
 use std::{collections::HashMap, path::Path};
 use walrus::{ir::Instr, FunctionId};
 
@@ -97,6 +100,7 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
 
 fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
     for elem in m.elements.iter_mut() {
+        
         for member in elem.members.iter_mut() {
             if let Some(func_id) = member {
                 let new_id_opt = fn_replacement_ids.get(func_id);
@@ -289,7 +293,19 @@ fn do_module_replacements(module: &mut walrus::Module) {
     walrus::passes::gc::run(module);
 }
 
-fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), anyhow::Error> {
+//fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), anyhow::Error> {
+fn do_wasm_file_processing(args: &arguments::Wasm2icArgs) -> Result<(), anyhow::Error> {
+    if !args.quiet {
+        log::info!(
+            "Processing input file: '{}', writing output into '{}'",
+            args.input_file,
+            args.output_file
+        );
+    }
+
+    let input_wasm = Path::new(&args.input_file);
+    let output_wasm = Path::new(&args.output_file);
+
     let mut module = if let Some(ext) = input_wasm.extension() {
         if ext == "wat" {
             let input_bin = wat::parse_file(input_wasm)?;
@@ -310,47 +326,10 @@ fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), 
     Ok(())
 }
 
-fn parse_arguments(args: &Vec<String>) -> Result<(String, String), anyhow::Error> {
-    let exe_name = std::env::current_exe()
-        .unwrap()
-        .file_name()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_owned();
-
-    let exe_version = env!("CARGO_PKG_VERSION");
-
-    println!("Wasi dependency removal {exe_name} v{exe_version}");
-
-    let input_wasm = args.get(1).ok_or_else(|| {
-        anyhow::anyhow!(
-            "The launch parameters are incorrect, try: {exe_name} <input.wasm> [output.wasm]"
-        )
-    })?;
-
-    // get output wasm name or use default name
-    let default_output_name = String::from("no_wasi.wasm");
-    let output_wasm = args.get(2).unwrap_or(&default_output_name);
-
-    log::info!(
-        "Processing input file: '{}', writing output into '{}'",
-        input_wasm,
-        output_wasm
-    );
-
-    Ok((input_wasm.clone(), output_wasm.clone()))
-}
-
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-
-    let args: Vec<String> = std::env::args().collect();
-
-    let (input_wasm, output_wasm) = parse_arguments(&args)?;
-
-    do_wasm_file_processing(Path::new(&input_wasm), Path::new(&output_wasm))?;
-
+    let args = arguments::Wasm2icArgs::parse();
+    do_wasm_file_processing(&args)?;
     Ok(())
 }
 
