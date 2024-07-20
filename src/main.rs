@@ -285,7 +285,7 @@ fn do_module_replacements(module: &mut walrus::Module) {
     // do recursive call replacement
     replace_calls(module, &fn_replacement_ids);
 
-    // add start entry (this is needed to do initialization)
+    // add _initialize entry (this is needed to do initialization)
     add_start_entry(module);
 
     // remove the _initialize export to clean up the module exports
@@ -304,7 +304,7 @@ fn do_wasm_file_processing(args: &arguments::Wasm2icArgs) -> Result<(), anyhow::
     );
 
     if !args.quiet {
-        println!("wasi2ic: processing input file: '{}', writing output into '{}'", args.input_file, args.output_file);
+        println!("wasi2ic {}: processing input file: '{}', writing output into '{}'", env!("CARGO_PKG_VERSION"), args.input_file, args.output_file);
     }
 
     let input_wasm = Path::new(&args.input_file);
