@@ -1,6 +1,6 @@
 [package]
 name = "wasi2ic"
-version = "0.2.13"
+version = "0.2.14"
 edition = "2021"
 description = "This tool converts WebAssembly System Interface (WASI) dependent Wasm files to be compatible with the Internet Computer (IC) platform."
 keywords = ["ic", "internet-computer", "wasi"]

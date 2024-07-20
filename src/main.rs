@@ -241,14 +241,16 @@ fn replace_calls_in_instructions(
 }
 
 fn add_start_entry(module: &mut walrus::Module) {
-    // try to find the start function
-    let start_function = module.funcs.by_name("_start");
+    // try to find the start (_initialize) function
+    let initialize_function = module.funcs.by_name("_initialize");
+    log::info!("_initialize function found: {:?}\n", initialize_function);
 
-    if let Some(start_fn) = start_function {
-        if Option::is_none(&module.start) {
-            module.start = Some(start_fn);
+    if let Some(initialize) = initialize_function {
+        if module.start.is_none() {
+            module.start = Some(initialize);
         }
     }
+
 }
 
 fn remove_start_export(module: &mut walrus::Module) {
@@ -256,7 +258,7 @@ fn remove_start_export(module: &mut walrus::Module) {
 
     // try to find the start export
     for export in module.exports.iter() {
-        if !export.name.starts_with("_start") {
+        if !export.name.starts_with("_initialize") {
             continue;
         }
 
@@ -286,7 +288,7 @@ fn do_module_replacements(module: &mut walrus::Module) {
     // add start entry (this is needed to do initialization)
     add_start_entry(module);
 
-    // remove the _start export to clean up the module exports
+    // remove the _initialize export to clean up the module exports
     remove_start_export(module);
 
     // clean-up unused imports

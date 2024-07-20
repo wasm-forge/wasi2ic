@@ -10,7 +10,7 @@ fn test_add_start_entry() {
                 i32.add
             )
 
-            (func $_start
+            (func $_initialize
                 i32.const 2
                 i32.const 3
                 call $add
@@ -43,7 +43,7 @@ fn test_remove_start_export() {
                 i32.add
             )
 
-            (func $_start
+            (func $_initialize
                 i32.const 2
                 i32.const 3
                 call $add
@@ -54,7 +54,7 @@ fn test_remove_start_export() {
                 drop
             )
 
-            (export "_start" (func $_start))
+            (export "_initialize" (func $_initialize))
         )
     "#;
 
@@ -63,9 +63,9 @@ fn test_remove_start_export() {
 
     let mut export_found: Option<walrus::ExportId> = None;
 
-    // try to find the start export
+    // try to find the initialize export
     for export in module.exports.iter() {
-        if !export.name.starts_with("_start") {
+        if !export.name.starts_with("_initialize") {
             continue;
         }
 
@@ -82,9 +82,9 @@ fn test_remove_start_export() {
     remove_start_export(&mut module);
 
     let mut export_found: Option<walrus::ExportId> = None;
-    // try to find the start export
+    // try to find the initialize export
     for export in module.exports.iter() {
-        if !export.name.starts_with("_start") {
+        if !export.name.starts_with("_initialize") {
             continue;
         }
 
@@ -117,7 +117,7 @@ fn test_gather_replacement_ids() {
         (import "wasi_unstable" "environ_get" (func $__imported_wasi_unstable_environ_get (;4;) (type 3)))
         (import "wasi_unstable" "proc_exit" (func $__imported_wasi_unstable_proc_exit (;5;) (type 1)))
 
-        (func $_start (;6;) (type 0)
+        (func $_initialize (;6;) (type 0)
             i32.const 1
             i32.const 2
             call $__ic_custom_random_get
@@ -144,7 +144,7 @@ fn test_gather_replacement_ids() {
         )
 
         (export "__ic_custom_fd_write" (func $ic_dummy_fd_write))
-        (export "_start" (func $_start))
+        (export "_initialize" (func $_initialize))
     )
     "#;
 
@@ -170,6 +170,7 @@ fn test_do_module_replacements() {
         (type (;3;) (func (param i32 i32) (result i32)))
         (type (;4;) (func (param i32 i32 i32)))
         (type (;5;) (func (param i32 i32 i32 i32) (result i32)))
+
         (import "ic0" "debug_print" (func $_dprint (;0;) (type 2)))
         (import "ic0" "msg_reply" (func $_msg_reply (;1;) (type 0)))
         (import "wasi_snapshot_preview1" "fd_write" (func $_wasi_snapshot_preview_fd_write (;2;) (type 5)))
@@ -186,7 +187,7 @@ fn test_do_module_replacements() {
             "\65\66\67\68"
         )
 
-        (func $_start (;6;) (type 0)
+        (func $_initialize (;6;) (type 0)
             i32.const 1
             i32.const 2
             call $_wasi_snapshot_preview_random_get
@@ -237,8 +238,6 @@ fn test_do_module_replacements() {
 
             call $_msg_reply
             i32.const 421
-
-
         )
 
         (func $__ic_custom_fd_write (;8;) (type 5) (param i32 i32 i32 i32) (result i32)
@@ -248,7 +247,7 @@ fn test_do_module_replacements() {
             i32.const 42
         )
 
-        (export "_start" (func $_start))
+        (export "_initialize" (func $_initialize))
     )
     "#;
 

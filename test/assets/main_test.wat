@@ -15,7 +15,7 @@
     (table (;0;) 5 5 funcref)
     (elem (;0;) (i32.const 1) func $_wasi_snapshot_preview_fd_write $_wasi_snapshot_preview_random_get )
 
-    (func $_start (;6;) (type 0)
+    (func $_initialize (;6;) (type 0)
         i32.const 1
         i32.const 2
         call $_wasi_snapshot_preview_random_get
@@ -78,6 +78,6 @@
 
 
 
-    (export "_start" (func $_start))
+    (export "_initialize" (func $_initialize))
 
 )
