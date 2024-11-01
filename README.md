@@ -61,3 +61,4 @@ fn init() {
 | --------------------------------------------- | ----------------------------- |
 | [ic-wasi-polyfill](https://github.com/wasm-forge/ic-wasi-polyfill) | Polyfill library implementing the low-level WASI calls. |
 | [stable-fs](https://github.com/wasm-forge/stable-fs) | Simple file system implementation based on the stable structures. The file system implements backend for the ic-wasi-polyfill |
+| [examples](https://github.com/wasm-forge/examples) | Repository containing various examplpes of runnig WASI projects on the IC. |
