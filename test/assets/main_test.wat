@@ -75,9 +75,6 @@
         i32.const 42
     )
 
-
-
-
     (export "_initialize" (func $_initialize))
 
 )
