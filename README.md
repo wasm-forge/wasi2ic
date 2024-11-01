@@ -1,31 +1,37 @@
 
 
-# wasi2ic
+
+## wasi2ic: WASI Polyfill Tool
 
 ![Tests](https://github.com/wasm-forge/wasi2ic/actions/workflows/rust.yml/badge.svg?event=push)
 [![Coverage](https://codecov.io/gh/wasm-forge/wasi2ic/graph/badge.svg?token=XE48Z6JSYS)](https://codecov.io/gh/wasm-forge/wasi2ic)
 
-`wasi2ic` is a tool to convert WebAssembly System Interface (WASI) dependent Wasm module for running it on the Internet Computer (IC) computer. The tool reads a Wasm binary and automatically replaces all WASI calls with their corresponding polyfill implementation.
+`wasi2ic` is a command-line tool that replaces WebAssembly System Interface (WASI) specific function calls with their 
+corresponding polyfill implementations. This allows you to run Wasm binaries compiled for `wasm32-wasi` on the Internet 
+Computer.
 
+## Installation
 
-## Installing wasi2ic
+Install `wasi2ic` using Cargo:
 
 ```bash
-  cargo install wasi2ic
+cargo install wasi2ic
 ```
 
 ## Usage
 
-To use this tool , navigate to the directory where the WASI-dependent binary resides, and run the command:
+Replace WASI dependencies in a Wasm file using:
 
 ```bash
-  wasi2ic <input-wasm-file> <output_wasm_file>
+wasi2ic <input-wasm-file> <output_wasm_file>
 ```
 
-This will read the input Wasm file and produce a new Wasm file with the WASI dependencies removed and and WASI rerouted to their IC-specific implementations.
+This command reads the input Wasm file, removes WASI dependencies, and reroutes WASI calls to their IC-specific 
+implementations. Note that the polyfill implementation must be present in your Wasm binary.
 
+To include the polyfill implementation in your Canister project, add the ic-wasi-polyfill dependency to your project.
 
-The tool requires that the polyfill implementation is present in your Wasm binary, to include the polyfill implementation into your canister project you need to add the polyfill dependency. For more information check out the [examples](https://github.com/wasm-forge/examples) repository.
+For more information, check out our [examples repository](https://github.com/wasm-forge/examples).
 
 
 ## Related repositories
