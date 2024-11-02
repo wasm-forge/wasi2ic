@@ -34,14 +34,13 @@ To include the polyfill implementation in your Canister project, add the ic-wasi
 cargo add ic-wasi-polyfill
 ```
 
-Also you will need to add the initialization call to the polyfill library, basic example using memory manager:
+Also you will need to add the initialization call to the polyfill library, basic example featuring user memory manager:
 
 ```rust
 use ic_stable_structures::{memory_manager::MemoryManager, DefaultMemoryImpl};
 use std::cell::RefCell;
 
 thread_local! {
-    // The memory manager enables multiple virtual memories in one.
     static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 }

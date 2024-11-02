@@ -2,6 +2,7 @@ mod arguments;
 
 use clap::Parser;
 use std::{collections::HashMap, path::Path};
+use walrus::ElementItems;
 use walrus::{ir::Instr, FunctionId};
 
 fn get_replacement_module_id(
@@ -100,21 +101,21 @@ fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, FunctionId>
 
 fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
     for elem in m.elements.iter_mut() {
-        
-        for member in elem.members.iter_mut() {
-            if let Some(func_id) = member {
-                let new_id_opt = fn_replacement_ids.get(func_id);
+        match &mut elem.items {
+            ElementItems::Functions(function_ids) => {
+                for func_id in function_ids.iter_mut() {
+                    if let Some(new_id) = fn_replacement_ids.get(func_id) {
+                        log::debug!(
+                            "Replace func id old ID: {:?}, new ID {:?}",
+                            func_id,
+                            *new_id
+                        );
 
-                if let Some(new_id) = new_id_opt {
-                    log::debug!(
-                        "Replace func id old ID: {:?}, new ID {:?}",
-                        func_id,
-                        *new_id
-                    );
-
-                    *member = Some(*new_id);
+                        *func_id = *new_id;
+                    }
                 }
             }
+            &mut ElementItems::Expressions(_, _) => {}
         }
     }
 
@@ -161,12 +162,27 @@ fn replace_calls_in_instructions(
                     ref_func_inst.func = *new_id;
                 }
             }
+
             Instr::Call(call_inst) => {
                 let new_id_opt = fn_replacement_ids.get(&call_inst.func);
 
                 if let Some(new_id) = new_id_opt {
                     log::debug!(
-                        "Replace function call old ID: {:?}, new ID {:?}",
+                        "Replace function call: old ID: {:?}, new ID {:?}",
+                        call_inst.func,
+                        *new_id
+                    );
+
+                    call_inst.func = *new_id;
+                }
+            }
+
+            Instr::ReturnCall(call_inst) => {
+                let new_id_opt = fn_replacement_ids.get(&call_inst.func);
+
+                if let Some(new_id) = new_id_opt {
+                    log::debug!(
+                        "Replace function return call: old ID: {:?}, new ID {:?}",
                         call_inst.func,
                         *new_id
                     );
@@ -230,7 +246,8 @@ fn replace_calls_in_instructions(
             | Instr::LoadSimd(_)
             | Instr::TableInit(_)
             | Instr::ElemDrop(_)
-            | Instr::TableCopy(_) => {}
+            | Instr::TableCopy(_)
+            | Instr::ReturnCallIndirect(_) => {}
         }
     }
 
@@ -250,7 +267,6 @@ fn add_start_entry(module: &mut walrus::Module) {
             module.start = Some(initialize);
         }
     }
-
 }
 
 fn remove_start_export(module: &mut walrus::Module) {
@@ -304,7 +320,12 @@ fn do_wasm_file_processing(args: &arguments::Wasm2icArgs) -> Result<(), anyhow::
     );
 
     if !args.quiet {
-        println!("wasi2ic {}: processing input file: '{}', writing output into '{}'", env!("CARGO_PKG_VERSION"), args.input_file, args.output_file);
+        println!(
+            "wasi2ic {}: processing input file: '{}', writing output into '{}'",
+            env!("CARGO_PKG_VERSION"),
+            args.input_file,
+            args.output_file
+        );
     }
 
     let input_wasm = Path::new(&args.input_file);
