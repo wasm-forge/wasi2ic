@@ -10,7 +10,7 @@ pub struct Wasm2icArgs {
     /// Input file to process (*.wasm or *.wat).
     pub input_file: String,
 
-    /// Output file to store the processed Wasm (*.wasm, *.wat).
+    /// Output file to store the processed Wasm (*.wasm or *.wat).
     #[arg(default_value_t = String::from("no_wasi.wasm"))]
     pub output_file: String,
 }
