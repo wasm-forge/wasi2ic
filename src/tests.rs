@@ -69,11 +69,8 @@ fn test_remove_start_export() {
             continue;
         }
 
-        match export.item {
-            walrus::ExportItem::Function(_) => {
-                export_found = Some(export.id());
-            }
-            _ => {}
+        if let walrus::ExportItem::Function(_) = export.item {
+            export_found = Some(export.id());
         }
     }
 
@@ -88,15 +85,12 @@ fn test_remove_start_export() {
             continue;
         }
 
-        match export.item {
-            walrus::ExportItem::Function(_) => {
-                export_found = Some(export.id());
-            }
-            _ => {}
+        if let walrus::ExportItem::Function(_) = export.item {
+            export_found = Some(export.id());
         }
     }
 
-    assert!(None == export_found);
+    assert!(export_found.is_none());
 }
 
 #[test]
@@ -266,11 +260,11 @@ fn test_do_module_replacements() {
     let result = imports.find("wasi_snapshot_preview1", "proc_exit");
     assert!(result.is_some());
     let result = imports.find("wasi_snapshot_preview1", "fd_write");
-    assert!(None == result);
+    assert!(result.is_none());
     let result = imports.find("wasi_snapshot_preview1", "random_get");
-    assert!(None == result);
+    assert!(result.is_none());
     let result = imports.find("wasi_snapshot_preview1", "environ_get");
-    assert!(None == result);
+    assert!(result.is_none());
 }
 
 #[test]
@@ -287,7 +281,7 @@ fn test_file_processing() {
     assert!(input_file.exists());
 
     let output_wasm = Path::new(&args.output_file);
-    let _ = std::fs::remove_file(&output_wasm);
+    let _ = std::fs::remove_file(output_wasm);
     assert!(!output_wasm.exists());
 
     do_wasm_file_processing(&args).unwrap();
@@ -306,9 +300,49 @@ fn test_file_processing() {
     let result = imports.find("wasi_snapshot_preview1", "proc_exit");
     assert!(result.is_some());
     let result = imports.find("wasi_snapshot_preview1", "fd_write");
-    assert!(None == result);
+    assert!(result.is_none());
     let result = imports.find("wasi_snapshot_preview1", "random_get");
-    assert!(None == result);
+    assert!(result.is_none());
     let result = imports.find("wasi_snapshot_preview1", "environ_get");
-    assert!(None == result);
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_metadata_is_preserved() {
+    std::fs::create_dir_all("target/test").unwrap();
+
+    let args: arguments::Wasm2icArgs = arguments::Wasm2icArgs {
+        quiet: false,
+        input_file: "test/assets/main_test.wat".to_string(),
+        output_file: "target/test/nowasi.wasm".to_string(),
+    };
+
+    let input_file = Path::new(&args.input_file);
+    assert!(input_file.exists());
+
+    let output_wasm = Path::new(&args.output_file);
+    let _ = std::fs::remove_file(output_wasm);
+    assert!(!output_wasm.exists());
+
+    do_wasm_file_processing(&args).unwrap();
+
+    assert!(output_wasm.exists());
+
+    let module = walrus::Module::from_file(output_wasm).unwrap();
+
+    // we expect random_get and fd_write to be replaced, environ_get to be removed and the calls to the proc_exit to remain
+    let imports = module.imports;
+
+    let result = imports.find("ic0", "debug_print");
+    assert!(result.is_some());
+    let result = imports.find("ic0", "msg_reply");
+    assert!(result.is_some());
+    let result = imports.find("wasi_snapshot_preview1", "proc_exit");
+    assert!(result.is_some());
+    let result = imports.find("wasi_snapshot_preview1", "fd_write");
+    assert!(result.is_none());
+    let result = imports.find("wasi_snapshot_preview1", "random_get");
+    assert!(result.is_none());
+    let result = imports.find("wasi_snapshot_preview1", "environ_get");
+    assert!(result.is_none());
 }

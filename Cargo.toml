@@ -1,6 +1,6 @@
 [package]
 name = "wasi2ic"
-version = "0.2.14"
+version = "0.2.15"
 edition = "2021"
 description = "This tool converts WebAssembly System Interface (WASI) dependent Wasm files to be compatible with the Internet Computer (IC) platform."
 keywords = ["ic", "internet-computer", "wasi"]
@@ -9,11 +9,11 @@ repository = "https://github.com/wasm-forge/wasi2ic"
 
 
 [dependencies]
-walrus = "0.22.0"
+walrus = "0.23.3"
 
-clap = { version = "4.5.20", features = ["derive"] }
-anyhow = { version = "1.0.92", default-features = false }
-env_logger = "0.11.5"
-log = "0.4.17"
-wasmprinter = "0.219.1"
-wat = "1.219.1"
+clap = { version = "4.5.34", features = ["derive"] }
+anyhow = { version = "1.0.97", default-features = false }
+env_logger = "0.11.7"
+log = "0.4.27"
+wasmprinter = "0.227.1"
+wat = "1.227.1"

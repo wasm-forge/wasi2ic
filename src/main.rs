@@ -162,7 +162,6 @@ fn replace_calls_in_instructions(
                     ref_func_inst.func = *new_id;
                 }
             }
-
             Instr::Call(call_inst) => {
                 let new_id_opt = fn_replacement_ids.get(&call_inst.func);
 
@@ -176,7 +175,6 @@ fn replace_calls_in_instructions(
                     call_inst.func = *new_id;
                 }
             }
-
             Instr::ReturnCall(call_inst) => {
                 let new_id_opt = fn_replacement_ids.get(&call_inst.func);
 
@@ -190,20 +188,16 @@ fn replace_calls_in_instructions(
                     call_inst.func = *new_id;
                 }
             }
-
             Instr::Block(block_ins) => {
                 block_ids.push(block_ins.seq);
             }
-
             Instr::Loop(loop_ins) => {
                 block_ids.push(loop_ins.seq);
             }
-
             Instr::IfElse(if_else) => {
                 block_ids.push(if_else.consequent);
                 block_ids.push(if_else.alternative);
             }
-
             Instr::CallIndirect(_)
             | Instr::LocalGet(_)
             | Instr::LocalSet(_)
@@ -247,6 +241,7 @@ fn replace_calls_in_instructions(
             | Instr::TableInit(_)
             | Instr::ElemDrop(_)
             | Instr::TableCopy(_)
+            | Instr::TernOp(_)
             | Instr::ReturnCallIndirect(_) => {}
         }
     }
@@ -328,25 +323,41 @@ fn do_wasm_file_processing(args: &arguments::Wasm2icArgs) -> Result<(), anyhow::
         );
     }
 
-    let input_wasm = Path::new(&args.input_file);
-    let output_wasm = Path::new(&args.output_file);
+    let mut config = walrus::ModuleConfig::new();
+    config.generate_name_section(true);
+    config.generate_producers_section(true);
+    config.generate_synthetic_names_for_anonymous_items(true);
 
-    let mut module = if let Some(ext) = input_wasm.extension() {
+    let input_wasm = Path::new(&args.input_file);
+
+    let wasm_bin = if let Some(ext) = input_wasm.extension() {
         if ext == "wat" {
-            let input_bin = wat::parse_file(input_wasm)?;
-            walrus::Module::from_buffer(&input_bin)?
+            wat::parse_file(input_wasm)?
         } else {
-            walrus::Module::from_file(input_wasm)?
+            std::fs::read(input_wasm)?
         }
     } else {
-        walrus::Module::from_file(input_wasm)?
+        std::fs::read(input_wasm)?
     };
+
+    let mut module = walrus::Module::from_buffer_with_config(&wasm_bin, &config)?;
 
     do_module_replacements(&mut module);
 
     let wasm = module.emit_wasm();
 
-    std::fs::write(output_wasm, wasm)?;
+    let output_wasm = Path::new(&args.output_file);
+    if let Some(ext) = output_wasm.extension() {
+        if ext == "wat" {
+            // write using wat printer
+            let wat = wasmprinter::print_bytes(&wasm)?;
+            std::fs::write(output_wasm, wat)?;
+        } else {
+            std::fs::write(output_wasm, wasm)?;
+        }
+    } else {
+        std::fs::write(output_wasm, wasm)?;
+    };
 
     Ok(())
 }

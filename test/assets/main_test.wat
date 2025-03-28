@@ -1,4 +1,4 @@
-(module
+(module $test_module
     (type (;0;) (func))
     (type (;1;) (func (param i32)))
     (type (;2;) (func (param i32 i32)))
@@ -77,4 +77,17 @@
 
     (export "_initialize" (func $_initialize))
 
+    (export "f" (func $__ic_custom_random_get)) 
+    (export "lambda" (func $_lambda))
+    (export "lambda2" (func $_lambda))
+
+    (func $_lambda (@name "__ic_custom_random_get") (param $x i32) (result i32) (local.get $x))
+
+    (@producers
+        (language "Rust" "")
+        (language "C11" "")
+        (processed-by "rustc" "1.84.0 (9fc6b4312 2025-01-07)")
+        (processed-by "clang" "18.1.2-wasi-sdk (https://github.com/llvm/llvm-project 26a1d6601d727a96f4301d0d8647b5a42760ae0c)")
+    )
+    (@custom "target_features" (after data) "custom target features")
 )
