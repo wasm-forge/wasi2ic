@@ -306,6 +306,16 @@ fn do_module_replacements(module: &mut walrus::Module) {
     walrus::passes::gc::run(module);
 }
 
+fn is_wat(path: &Path) -> bool {
+    if let Some(ext) = path.extension() {
+        if ext == "wat" {
+            return true;
+        }
+    }
+
+    false
+}
+
 //fn do_wasm_file_processing(input_wasm: &Path, output_wasm: &Path) -> Result<(), anyhow::Error> {
 fn do_wasm_file_processing(args: &arguments::Wasm2icArgs) -> Result<(), anyhow::Error> {
     log::info!(
@@ -329,32 +339,23 @@ fn do_wasm_file_processing(args: &arguments::Wasm2icArgs) -> Result<(), anyhow::
     config.generate_synthetic_names_for_anonymous_items(true);
 
     let input_wasm = Path::new(&args.input_file);
-
-    let wasm_bin = if let Some(ext) = input_wasm.extension() {
-        if ext == "wat" {
-            wat::parse_file(input_wasm)?
-        } else {
-            std::fs::read(input_wasm)?
-        }
+    let wasm = if is_wat(input_wasm) {
+        wat::parse_file(input_wasm)?
     } else {
         std::fs::read(input_wasm)?
     };
 
-    let mut module = walrus::Module::from_buffer_with_config(&wasm_bin, &config)?;
+    let mut module = walrus::Module::from_buffer_with_config(&wasm, &config)?;
 
     do_module_replacements(&mut module);
 
     let wasm = module.emit_wasm();
 
     let output_wasm = Path::new(&args.output_file);
-    if let Some(ext) = output_wasm.extension() {
-        if ext == "wat" {
-            // write using wat printer
-            let wat = wasmprinter::print_bytes(&wasm)?;
-            std::fs::write(output_wasm, wat)?;
-        } else {
-            std::fs::write(output_wasm, wasm)?;
-        }
+    if is_wat(output_wasm) {
+        // write using wat printer
+        let wat = wasmprinter::print_bytes(&wasm)?;
+        std::fs::write(output_wasm, wat)?;
     } else {
         std::fs::write(output_wasm, wasm)?;
     };
