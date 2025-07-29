@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::*;
 
 #[test]
@@ -28,7 +30,7 @@ fn test_add_start_entry() {
 
     assert!(module.start.is_none());
 
-    add_start_entry(&mut module);
+    common::add_start_entry(&mut module);
 
     assert!(module.start.is_some());
 }
@@ -76,7 +78,7 @@ fn test_remove_start_export() {
 
     assert!(export_found.is_some());
 
-    remove_start_export(&mut module);
+    common::remove_start_export(&mut module);
 
     let mut export_found: Option<walrus::ExportId> = None;
     // try to find the initialize export
@@ -145,7 +147,7 @@ fn test_gather_replacement_ids() {
     let binary = wat::parse_str(wat).unwrap();
     let module = walrus::Module::from_buffer(&binary).unwrap();
 
-    let id_reps: HashMap<usize, usize> = gather_replacement_ids(&module)
+    let id_reps: HashMap<usize, usize> = common::gather_replacement_ids(&module)
         .iter()
         .map(|(x, y)| (x.index(), y.index()))
         .collect();
@@ -248,7 +250,7 @@ fn test_do_module_replacements() {
     let binary = wat::parse_str(wat).unwrap();
     let mut module = walrus::Module::from_buffer(&binary).unwrap();
 
-    do_module_replacements(&mut module);
+    common::do_module_replacements(&mut module);
 
     // we expect random_get and fd_write to be replaced, environ_get to be removed and the calls to the proc_exit to remain
     let imports = module.imports;

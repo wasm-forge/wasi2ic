@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.2.16]
+- Minor text corrections
+- Support wasi2ic as a library
+
 
 ## [v0.2.15]
 - Update dependencies
@@ -26,7 +30,8 @@
 
 
 
-[unreleased]: https://github.com/wasm-forge/wasi2ic/compare/v0.2.15...main
+[unreleased]: https://github.com/wasm-forge/wasi2ic/compare/v0.2.16...main
+[v0.2.16]: https://github.com/wasm-forge/wasi2ic/compare/v0.2.15...v0.2.16
 [v0.2.15]: https://github.com/wasm-forge/wasi2ic/compare/v0.2.14...v0.2.15
 [v0.2.14]: https://github.com/wasm-forge/wasi2ic/compare/v0.2.13...v0.2.14
 [v0.2.13]: https://github.com/wasm-forge/wasi2ic/compare/v0.2.12...v0.2.13
