@@ -236,8 +236,10 @@ fn replace_calls_in_instructions(
             | Instr::TableInit(_)
             | Instr::ElemDrop(_)
             | Instr::TableCopy(_)
-            | Instr::TernOp(_)
-            | Instr::ReturnCallIndirect(_) => {}
+            //| Instr::TernOp(_) // will be needed with walrus version 0.23 or later
+            | Instr::ReturnCallIndirect(_) => {} 
+
+            _ => {}
         }
     }
 

@@ -31,11 +31,6 @@ pub fn do_wasm_file_processing(args: &Wasm2icArgs) -> Result<(), anyhow::Error> 
         );
     }
 
-    let mut config = walrus::ModuleConfig::new();
-    config.generate_name_section(true);
-    config.generate_producers_section(true);
-    config.generate_synthetic_names_for_anonymous_items(true);
-
     let input_wasm = Path::new(&args.input_file);
     let wasm = if is_wat(input_wasm) {
         wat::parse_file(input_wasm)?
@@ -43,7 +38,8 @@ pub fn do_wasm_file_processing(args: &Wasm2icArgs) -> Result<(), anyhow::Error> 
         std::fs::read(input_wasm)?
     };
 
-    let mut module = walrus::Module::from_buffer_with_config(&wasm, &config)?;
+    // use the same parser as dfx here
+    let mut module = ic_wasm::utils::parse_wasm(&wasm, true)?; //walrus::Module::from_buffer_with_config(&wasm, &config)?;
 
     common::do_module_replacements(&mut module);
 
