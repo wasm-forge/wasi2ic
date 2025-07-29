@@ -284,13 +284,13 @@ pub(crate) fn remove_start_export(module: &mut walrus::Module) {
     }
 }
 
-pub(crate) fn do_module_replacements(module: &mut walrus::Module) {
+pub(crate) fn do_module_replacements(module: &mut walrus::Module) -> bool {
     // find corresponding IDs for replacements
     let fn_replacement_ids = gather_replacement_ids(module);
 
     if fn_replacement_ids.is_empty() {
         // do not modify module, if there are no functions to rewire
-        return;
+        return false;
     }
 
     // do recursive call replacement
@@ -304,4 +304,6 @@ pub(crate) fn do_module_replacements(module: &mut walrus::Module) {
 
     // clean-up unused imports
     walrus::passes::gc::run(module);
+
+    true
 }
