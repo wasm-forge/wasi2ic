@@ -4,7 +4,7 @@
 - Minor text corrections
 - Support wasi2ic as a library
 - Add command line option to print out existing exports
-- After conversion, report if there are any unresolved dependencies left, return error code 1 if there is anything other than ic0
+- After conversion, report if there are any unresolved dependencies left, return an error code if there is anything other than ic0
 - Update dependencies
 
 ## [v0.2.15]
