@@ -7,6 +7,10 @@ pub struct Wasm2icArgs {
     #[arg(long, short, default_value_t = false)]
     pub quiet: bool,
 
+    /// Show WASM module imports
+    #[arg(long, short, default_value_t = false)]
+    pub imports: bool,
+
     /// Input file to process (*.wasm or *.wat).
     pub input_file: String,
 

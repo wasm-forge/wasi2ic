@@ -6,10 +6,12 @@
     (type (;4;) (func (param i32 i32 i32)))
     (type (;5;) (func (param i32 i32 i32 i32) (result i32)))
     (import "ic0" "debug_print" (func $_dprint (;0;) (type 2)))
+    (import "env" "some_function" (func $_some_function (;0;) (type 2)))
     (import "ic0" "msg_reply" (func $_msg_reply (;1;) (type 0)))
     (import "wasi_snapshot_preview1" "fd_write" (func $_wasi_snapshot_preview_fd_write (;2;) (type 5)))
     (import "wasi_snapshot_preview1" "random_get" (func $_wasi_snapshot_preview_random_get (;3;) (type 3)))
     (import "wasi_snapshot_preview1" "environ_get" (func $__imported_wasi_snapshot_preview1_environ_get (;4;) (type 3)))
+    (import "wasi_snapshot_preview1" "proc_exit" (func $__imported_wasi_snapshot_preview1_proc_exit (;5;) (type 1)))
 
     (table (;0;) 5 5 funcref)
     (elem (;0;) (i32.const 1) func $_wasi_snapshot_preview_fd_write $_wasi_snapshot_preview_random_get )
@@ -55,7 +57,7 @@
         i32.const 5
         call $_wasi_snapshot_preview_fd_write
 
-        drop
+        call $__imported_wasi_snapshot_preview1_proc_exit
     )
 
     (func $__ic_custom_random_get (;7;) (type 3) (param i32 i32) (result i32)
@@ -71,6 +73,9 @@
         i32.const 0
         i32.const 0
         call $_dprint
+        i32.const 0
+        i32.const 0
+        call $_some_function
         i32.const 42
     )
 
@@ -88,5 +93,5 @@
         (processed-by "rustc" "1.84.0 (9fc6b4312 2025-01-07)")
         (processed-by "clang" "18.1.2-wasi-sdk (https://github.com/llvm/llvm-project 26a1d6601d727a96f4301d0d8647b5a42760ae0c)")
     )
-    (@custom "target_features" (after data) "custom target features")
+
 )

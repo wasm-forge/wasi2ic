@@ -238,8 +238,7 @@ fn replace_calls_in_instructions(
             | Instr::TableCopy(_)
             //| Instr::TernOp(_) // will be needed with walrus version 0.23 or later
             | Instr::ReturnCallIndirect(_) => {} 
-
-            _ => {}
+            
         }
     }
 
@@ -308,4 +307,24 @@ pub(crate) fn do_module_replacements(module: &mut walrus::Module) -> bool {
     walrus::passes::gc::run(module);
 
     true
+}
+
+pub(crate) fn get_module_imports(module: &walrus::Module) -> Vec<(String, String)> {
+    
+    let mut module_imports: Vec<(String, String)> = Vec::new();
+
+    for imp in module.imports.iter() {
+        match imp.kind {
+            walrus::ImportKind::Function(_fn_id) => {
+
+                module_imports.push((imp.module.as_str().to_string(), imp.name.as_str().to_string()));
+            }
+
+            walrus::ImportKind::Table(_)
+            | walrus::ImportKind::Memory(_)
+            | walrus::ImportKind::Global(_) => {}
+        }
+    }
+
+    module_imports
 }
