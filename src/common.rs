@@ -1,6 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use walrus::ElementItems;
 use walrus::{ir::Instr, FunctionId};
+
+const WASI_UNSTABLE: &str = "wasi_unstable";
+const WASI_SNAPSHOT_PREVIEW1: &str = "wasi_snapshot_preview1";
 
 fn get_replacement_module_id(
     module: &walrus::Module,
@@ -9,24 +12,42 @@ fn get_replacement_module_id(
     fn_id: FunctionId,
 ) -> Option<FunctionId> {
     // we only support wasi_unstable and wasi_snapshot_preview1 modules
-    if module_name != "wasi_unstable" && module_name != "wasi_snapshot_preview1" {
+    if module_name != WASI_UNSTABLE && module_name != WASI_SNAPSHOT_PREVIEW1 {
         return None;
     }
 
     let searched_function_name = format!("__ic_custom_{import_name}");
 
+    // 1) Search by function name
     for fun in module.funcs.iter() {
         if let Some(name) = &fun.name {
             if *name == searched_function_name {
+                let original_ty = module.funcs.get(fn_id).ty();
+                let replacement_ty = module.funcs.get(fun.id()).ty();
+
+                if original_ty != replacement_ty {
+                    log::error!(
+                        "Type mismatch for replacement {}::{}: original {:?}, replacement {:?}",
+                        module_name,
+                        import_name,
+                        original_ty,
+                        replacement_ty
+                    );
+                    return None;
+                }
+
+                if matches!(module.funcs.get(fun.id()).kind, walrus::FunctionKind::Import(_)) {
+                    log::error!(
+                        "Replacement function {} must not be an imported function",
+                        searched_function_name
+                    );
+                    return None;
+                }
+
                 log::debug!(
                     "Function replacement found: {:?} -> {:?}.",
                     module.funcs.get(fn_id).name,
                     module.funcs.get(fun.id()).name
-                );
-
-                assert_eq!(
-                    module.funcs.get(fn_id).ty(),
-                    module.funcs.get(fun.id()).ty()
                 );
 
                 return Some(fun.id());
@@ -34,7 +55,7 @@ fn get_replacement_module_id(
         }
     }
 
-    // additionally try searching exports, in case the original function was renamed
+    // 2) additionally try searching exports, in case the original function was renamed
     for export in module.exports.iter() {
         if export.name != searched_function_name {
             continue;
@@ -42,15 +63,35 @@ fn get_replacement_module_id(
 
         match export.item {
             walrus::ExportItem::Function(exported_function) => {
+                let original_ty = module.funcs.get(fn_id).ty();
+                let replacement_ty = module.funcs.get(exported_function).ty();
+
+                if original_ty != replacement_ty {
+                    log::error!(
+                        "Type mismatch for exported replacement {}::{}: original {:?}, replacement {:?}",
+                        module_name,
+                        import_name,
+                        original_ty,
+                        replacement_ty
+                    );
+                    return None;
+                }
+
+                if matches!(
+                    module.funcs.get(exported_function).kind,
+                    walrus::FunctionKind::Import(_)
+                ) {
+                    log::error!(
+                        "Exported replacement function {} must not be an imported function",
+                        searched_function_name
+                    );
+                    return None;
+                }
+
                 log::debug!(
                     "Function replacement found in exports: {:?} -> {:?}.",
                     module.funcs.get(fn_id).name,
                     module.funcs.get(exported_function).name
-                );
-
-                assert_eq!(
-                    module.funcs.get(fn_id).ty(),
-                    module.funcs.get(exported_function).ty()
                 );
 
                 return Some(exported_function);
@@ -95,35 +136,41 @@ pub(crate) fn gather_replacement_ids(m: &walrus::Module) -> HashMap<FunctionId, 
 }
 
 fn replace_calls(m: &mut walrus::Module, fn_replacement_ids: &HashMap<FunctionId, FunctionId>) {
+    // First, patch element segments
     for elem in m.elements.iter_mut() {
         match &mut elem.items {
             ElementItems::Functions(function_ids) => {
                 for func_id in function_ids.iter_mut() {
-                    if let Some(new_id) = fn_replacement_ids.get(func_id) {
+                    if let Some(&new_id) = fn_replacement_ids.get(func_id) {
                         log::debug!(
-                            "Replace func id old ID: {:?}, new ID {:?}",
+                            "Replace func id in element: old ID: {:?}, new ID {:?}",
                             func_id,
-                            *new_id
+                            new_id
                         );
 
-                        *func_id = *new_id;
+                        *func_id = new_id;
                     }
                 }
             }
-            &mut ElementItems::Expressions(_, _) => {}
+            ElementItems::Expressions(_, _) => {
+                // Expressions do not contain FunctionId directly here.
+            }
         }
     }
 
-    // replace dependent calls
+    // Then, replace dependent calls in function bodies
     for fun in m.funcs.iter_mut() {
         log::debug!("Processing function `{:?}`", fun.name);
 
         match &mut fun.kind {
-            walrus::FunctionKind::Import(_import_fun) => {}
+            walrus::FunctionKind::Import(_import_fun) => {
+                // nothing to rewrite in imported bodies
+            }
 
             walrus::FunctionKind::Local(local_fun) => {
                 let block_id: walrus::ir::InstrSeqId = local_fun.entry_block();
-                replace_calls_in_instructions(block_id, fn_replacement_ids, local_fun);
+                let mut visited: HashSet<walrus::ir::InstrSeqId> = HashSet::new();
+                replace_calls_in_instructions(block_id, fn_replacement_ids, local_fun, &mut visited);
             }
 
             walrus::FunctionKind::Uninitialized(_) => {}
@@ -135,52 +182,49 @@ fn replace_calls_in_instructions(
     block_id: walrus::ir::InstrSeqId,
     fn_replacement_ids: &HashMap<FunctionId, FunctionId>,
     local_fun: &mut walrus::LocalFunction,
+    visited: &mut HashSet<walrus::ir::InstrSeqId>,
 ) {
+    if !visited.insert(block_id) {
+        // already visited this block in this function; avoid infinite recursion
+        return;
+    }
+
     log::debug!("Entering block {block_id:?}");
 
     let instructions = &mut local_fun.block_mut(block_id).instrs;
 
-    let mut block_ids = vec![];
+    let mut block_ids = Vec::new();
 
     for (ins, _location) in instructions.iter_mut() {
         match ins {
             Instr::RefFunc(ref_func_inst) => {
-                let new_id_opt = fn_replacement_ids.get(&ref_func_inst.func);
-
-                if let Some(new_id) = new_id_opt {
+                if let Some(&new_id) = fn_replacement_ids.get(&ref_func_inst.func) {
                     log::debug!(
                         "Replace ref_func old ID: {:?}, new ID {:?}",
                         ref_func_inst.func,
-                        *new_id
+                        new_id
                     );
-
-                    ref_func_inst.func = *new_id;
+                    ref_func_inst.func = new_id;
                 }
             }
             Instr::Call(call_inst) => {
-                let new_id_opt = fn_replacement_ids.get(&call_inst.func);
-
-                if let Some(new_id) = new_id_opt {
+                if let Some(&new_id) = fn_replacement_ids.get(&call_inst.func) {
                     log::debug!(
                         "Replace function call: old ID: {:?}, new ID {:?}",
                         call_inst.func,
-                        *new_id
+                        new_id
                     );
-
-                    call_inst.func = *new_id;
+                    call_inst.func = new_id;
                 }
             }
             Instr::ReturnCall(call_inst) => {
-                let new_id_opt = fn_replacement_ids.get(&call_inst.func);
-
-                if let Some(new_id) = new_id_opt {
+                if let Some(&new_id) = fn_replacement_ids.get(&call_inst.func) {
                     log::debug!(
                         "Replace function return call: old ID: {:?}, new ID {:?}",
                         call_inst.func,
-                        *new_id
+                        new_id
                     );
-
-                    call_inst.func = *new_id;
+                    call_inst.func = new_id;
                 }
             }
             Instr::Block(block_ins) => {
@@ -236,26 +280,29 @@ fn replace_calls_in_instructions(
             | Instr::TableInit(_)
             | Instr::ElemDrop(_)
             | Instr::TableCopy(_)
-            //| Instr::TernOp(_) // will be needed with walrus version 0.23 or later
-            | Instr::ReturnCallIndirect(_) => {} 
-            
+            // | Instr::TernOp(_) // will be needed with walrus version 0.23 or later
+            | Instr::ReturnCallIndirect(_) => {
+            }
         }
     }
 
-    // process additional instructins inside blocks
-    for block_id in block_ids {
-        replace_calls_in_instructions(block_id, fn_replacement_ids, local_fun)
+    // process additional instructions inside nested blocks
+    for nested_block_id in block_ids {
+        replace_calls_in_instructions(nested_block_id, fn_replacement_ids, local_fun, visited)
     }
 }
 
 pub(crate) fn add_start_entry(module: &mut walrus::Module) {
     // try to find the start (_initialize) function
     let initialize_function = module.funcs.by_name("_initialize");
-    log::info!("_initialize function found: {initialize_function:?}\n");
+    log::info!("_initialize function found: {initialize_function:?}");
 
     if let Some(initialize) = initialize_function {
         if module.start.is_none() {
+            log::info!("Setting module start function to _initialize");
             module.start = Some(initialize);
+        } else {
+            log::debug!("Module already has a start function; leaving it unchanged");
         }
     }
 }
@@ -269,18 +316,15 @@ pub(crate) fn remove_start_export(module: &mut walrus::Module) {
             continue;
         }
 
-        match export.item {
-            walrus::ExportItem::Function(_) => {
-                export_found = Some(export.id());
-            }
-            walrus::ExportItem::Table(_)
-            | walrus::ExportItem::Memory(_)
-            | walrus::ExportItem::Global(_) => {}
+        if let walrus::ExportItem::Function(_) = export.item {
+            export_found = Some(export.id());
+            break;
         }
     }
 
     // remove export, if it was found
     if let Some(export_id) = export_found {
+        log::debug!("Removing _initialize export");
         module.exports.delete(export_id);
     }
 }
@@ -291,6 +335,7 @@ pub(crate) fn do_module_replacements(module: &mut walrus::Module) -> bool {
 
     if fn_replacement_ids.is_empty() {
         // do not modify module, if there are no functions to rewire
+        log::debug!("No WASI imports to replace; leaving module unchanged");
         return false;
     }
 
@@ -310,14 +355,15 @@ pub(crate) fn do_module_replacements(module: &mut walrus::Module) -> bool {
 }
 
 pub(crate) fn get_module_imports(module: &walrus::Module) -> Vec<(String, String)> {
-    
     let mut module_imports: Vec<(String, String)> = Vec::new();
 
     for imp in module.imports.iter() {
         match imp.kind {
             walrus::ImportKind::Function(_fn_id) => {
-
-                module_imports.push((imp.module.as_str().to_string(), imp.name.as_str().to_string()));
+                module_imports.push((
+                    imp.module.as_str().to_string(),
+                    imp.name.as_str().to_string(),
+                ));
             }
 
             walrus::ImportKind::Table(_)

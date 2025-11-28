@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.2.17]
+- Fix infinite recursion
+- Refactor code structure
+
 ## [v0.2.16]
 - Minor text corrections
 - Support wasi2ic as a library
